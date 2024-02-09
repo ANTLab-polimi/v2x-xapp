@@ -16,6 +16,8 @@
 #include <NativeReal.h>
 #include <NULL.h>
 #include <constr_CHOICE.h>
+// #include <OCTET_STRING.h>
+#include <Buffer-String.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +29,10 @@ typedef enum MeasurementValue_PR {
 	MeasurementValue_PR_valueInt,
 	MeasurementValue_PR_valueReal,
 	MeasurementValue_PR_noValue,
-	MeasurementValue_PR_valueRRC
+	MeasurementValue_PR_valueRRC,
+	// modified
+	MeasurementValue_PR_valueOctetString
+	// end modification
 	/* Extensions may appear below */
 	
 } MeasurementValue_PR;
@@ -43,9 +48,14 @@ typedef struct MeasurementValue {
 		double	 valueReal;
 		NULL_t	 noValue;
 		struct L3_RRC_Measurements	*valueRRC;
+		// modified
+		// OCTET_STRING_t *valueOctetString;
+		// Buffer_String_t *valueOctetString;
+		Buffer_String_t valueOctetString;
+		// end modification
 		/*
 		 * This type is extensible,
-		 * possible extensions are below.
+		 * possible extensions are below. 
 		 */
 	} choice;
 	
@@ -56,7 +66,10 @@ typedef struct MeasurementValue {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_MeasurementValue;
 extern asn_CHOICE_specifics_t asn_SPC_MeasurementValue_specs_1;
-extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[4];
+// extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[4];
+// modified
+extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[5];
+// end modification
 extern asn_per_constraints_t asn_PER_type_MeasurementValue_constr_1;
 
 #ifdef __cplusplus

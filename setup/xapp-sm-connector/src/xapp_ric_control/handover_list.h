@@ -8,12 +8,13 @@
 #ifndef	_MeasResultServMOList_H_
 #define	_MeasResultServMOList_H_
 
-
+// extern "C" {
 #include <asn_application.h>
 
 /* Including external dependencies */
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
+// }
 
 #ifdef __cplusplus
 extern "C" {

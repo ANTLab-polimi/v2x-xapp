@@ -81,7 +81,7 @@ set ( srcd "${CMAKE_CURRENT_SOURCE_DIR}" )
 # but Cmake insists on having these exist when we add them to include directories to
 # enable code to find them after we build them.
 #
-include_directories("${srcd}/asn1c_defs;${srcd}/src/xapp_ric_control" )
+include_directories("${srcd}/asn1c_defs;${srcd}/src/ns3_decode;${srcd}/src/xapp_ric_control")
 
 
 # Compiler flags
@@ -101,12 +101,13 @@ endif()
 unset( GPROF CACHE )					# we don't want this to persist
 
 add_subdirectory(asn1c_defs)
+add_subdirectory(src/ns3_decode)
 add_subdirectory(src/xapp_ric_control)
 
 # we only build/export the static archive (.a) if generating a dev package
 if( DEV_PKG )
     	add_library( e2sim_static STATIC
-        	     "$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:asn1_objects>"
+        	     "$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:asn1_objects>"
 	)
 
 	set_target_properties( e2sim_static
@@ -116,12 +117,12 @@ if( DEV_PKG )
    			       VERSION ${major_version}.${minor_version}.${patch_level}
 	)
 
-	target_include_directories(e2sim_static PUBLIC "asn1c_defs" PUBLIC "src/xapp_ric_control")	
+	target_include_directories(e2sim_static PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC  "src/xapp_ric_control")	
 	target_include_directories(e2sim_static PUBLIC "/usr/local/${install_inc}")
 	# target_include_directories( e2sim_static PUBLIC include)
 else()
 	add_library( e2sim_shared SHARED
-		"$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:asn1_objects>"
+		"$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:asn1_objects>"
 	)
 	set_target_properties( e2sim_shared
    			       PROPERTIES
@@ -129,7 +130,7 @@ else()
    			       SOVERSION 1
    			       VERSION ${major_version}.${minor_version}.${patch_level}
 	)
-	target_include_directories(e2sim_shared PUBLIC "asn1c_defs" PUBLIC "src/xapp_ric_control")	
+	target_include_directories(e2sim_shared PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC "src/xapp_ric_control")	
 	target_include_directories(e2sim_shared PUBLIC "/usr/local/${install_inc}")
 endif()
 

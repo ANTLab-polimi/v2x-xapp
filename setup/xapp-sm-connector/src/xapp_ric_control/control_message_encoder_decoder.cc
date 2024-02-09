@@ -5,17 +5,27 @@
 #include <set>
 #include <algorithm>
 #include <memory>
+#include <string>
+#include <sstream>
+#include <cassert>  
+// #include "assert.h"
 
 #include "control_message_encoder_decoder.h"
 // extern "C" {
-#include "E2SM-RC-ControlMessage.h"
-// }
-#include "E2AP-PDU.h"
+// #include "E2SM-RC-ControlMessage.h"
 #include "E2SM-KPM-IndicationMessage.h"
 #include "E2SM-KPM-IndicationHeader.h"
 #include "RICindication.h"
 #include "InitiatingMessage.h"
 #include "ProtocolIE-Field.h"
+#include "E2AP-PDU.h"
+#include "nr-sl-phy-mac-common.h"
+#include "v2x-scheduling-plmn.h"
+#include "V2X-Scheduling-All-Users.h"
+#include "V2X-Scheduling-Item.h"
+#include "V2X-Single-User-report.h"
+#include "V2X-Scheduling-User.h"
+// }
 
 #include "tinyxml2.h"
 
@@ -125,7 +135,7 @@ int e2ap_asn1c_encode_all_handovers(AllHandoversList_t* pdu, unsigned char **buf
         // mdclog_write(MDCLOG_INFO,"[E2AP ASN] Unable to aper encode");
     } else {
         // mdclog_write(MDCLOG_INFO, "[E2AP ASN] Encoded succesfully, encoded size = %d", len);
-        xer_fprint(stderr, &asn_DEF_AllHandoversList, pdu);
+        // xer_fprint(stderr, &asn_DEF_AllHandoversList, pdu);
     }
 
     return len;
@@ -142,9 +152,10 @@ int e2ap_asn1c_encode_control_message(E2SM_RC_ControlMessage_t* pdu, unsigned ch
 
     if (len < 0) {
         // mdclog_write(MDCLOG_INFO,"[E2AP ASN] Unable to aper encode");
+        std::cout << "[E2AP ASN] Unable to aper encode" <<std::endl;
     } else {
         // mdclog_write(MDCLOG_INFO, "[E2AP ASN] Encoded succesfully, encoded size = %d", len);
-        xer_fprint(stderr, &asn_DEF_E2SM_RC_ControlMessage, pdu);
+        // xer_fprint(stderr, &asn_DEF_E2SM_RC_ControlMessage, pdu);
     }
 
     return len;
@@ -168,17 +179,14 @@ struct asn_dec_rval_s e2ap_asn1c_decode_handover_item(CellHandoverItem_t *pdu, e
 e2ap_stcp_buffer_t*
 decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
     // std::cout << "Buffer length " << buffSize << std::endl;
-    // E2AP_PDU_t *pdu = nullptr;
     E2AP_PDU_t *pdu = (E2AP_PDU_t * )calloc(1, sizeof(E2AP_PDU_t));
     uint8_t* buff = (uint8_t *) calloc(1, buffSize);
     memcpy(buff, buffer, buffSize);
     InitiatingMessage_t* initMsg; 
     e2ap_stcp_buffer* data = (e2ap_stcp_buffer *) calloc(1, sizeof(e2ap_stcp_buffer));
-    // return data;
     tinyxml2::XMLDocument pduDoc;
 	tinyxml2::XMLDocument headerDoc;
 	tinyxml2::XMLDocument msgDoc;
-    // printf("Entered 1 \n");
     // printf("Buffer %s \n", buff);
 	auto retval = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2AP_PDU, (void **) &pdu, (void *)buff, buffSize);
 	// auto retval = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2AP_PDU, (void **) &pdu, buffer, buffSize);
@@ -194,8 +202,6 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
                 {
                     case 26:  // RIC indication message
                     {
-                        // printf("Entered 3 \n");
-                        // break;
                         int payload_size = ricIndication->protocolIEs.list.array[idx]-> \
                                                     value.choice.RICindicationMessage.size;
 
@@ -210,14 +216,14 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
                         FILE *streamMessage = open_memstream(&printBufferMessage, &sizeMessage);
                         xer_fprint(streamMessage, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
                         msgDoc.Parse(printBufferMessage);
+                        delete streamMessage;
+                        delete printBufferMessage;
+                        free(payload);
                         break;
                     }
                     break;
                     case 25:  // RIC indication header
                     {
-                        // printf("Entered 4 \n");
-                        // break;
-                        // std::cout << "Ric indication header at index " << (int)idx << std::endl;
                         int payload_size = ricIndication->protocolIEs.list.array[idx]-> \
                                                     value.choice.RICindicationHeader.size;
                         char* payload = (char*) calloc(payload_size, sizeof(char));
@@ -230,11 +236,13 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
                         FILE *streamHeader = open_memstream(&printBufferHeader, &sizeHeader);
                         xer_fprint(streamHeader, &asn_DEF_E2SM_KPM_IndicationHeader, descriptor);
                         headerDoc.Parse(printBufferHeader);
+                        delete streamHeader;
+                        delete printBufferHeader;
+                        free(payload);
                         break;
                     }
                 }
             }
-            // printf("Entered 5 \n");
             tinyxml2::XMLElement* mainElement = pduDoc.NewElement("message");
             tinyxml2::XMLNode* headerNode = pduDoc.InsertFirstChild(mainElement->DeepClone(&pduDoc));
             tinyxml2::XMLNode* rootHeader = headerDoc.FirstChild()->DeepClone(&pduDoc); 
@@ -244,7 +252,6 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
             // sending the final
             char* printBufferFinal;
             size_t sizeFinal;
-            // printf("Entered 6 \n");
             FILE *streamFinal = open_memstream(&printBufferFinal, &sizeFinal);
             pduDoc.SaveFile(streamFinal, true);
             fflush(streamFinal);
@@ -253,11 +260,99 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
             // printf( "Data length of decoded message %d", data->msg_length); 
             data->msg_buffer = (uint8_t *) calloc(1, data->msg_length);
             memcpy(data->msg_buffer, printBufferFinal, std::min(data->msg_length, MAX_SCTP_BUFFER));
-            // printf("Entered 7 \n");
+            // deleting pointers
+            delete printBufferFinal;
+            delete streamFinal;
         }
     }
-    // printf("Entered 8 \n");
     fflush(stdout);
+    // delete pdu;
+    // delete buff;
+    free(pdu);
+    free(buff);
+    return data;
+}
+
+char* converHexToByte(std::string hexString) {
+
+    char * bytes = new char[hexString.length()/2];
+    std::stringstream converter;
+
+    for(int i = 0; i < hexString.length(); i+=2)
+    {
+        converter << std::hex << hexString.substr(i,2);
+        int byte;
+        converter >> byte;
+        bytes[i/2] = byte & 0xFF;
+        converter.str(std::string());
+        converter.clear();
+    }
+    // char* bytesPointer= bytes;
+    // return bytesPointer;
+    return bytes;
+}  
+
+v2x_sci_header_buffer_t*
+decode_v2x_sci_header(uint8_t* buffer, size_t buffSize){
+    v2x_sci_header_buffer_t* data;
+    // std::cout << " entered " << std::endl;
+    try{
+        // uint8_t* buff = (uint8_t *) calloc(1, buffSize);
+        // memcpy(buff, buffer, buffSize);
+        // std::string s(buff);
+        std::string s((char*) buffer);
+        // std::cout << " the buffer " << s << std::endl;
+        // removing white space if there is any
+        s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char x) { return std::isspace(x); }), s.end());
+        // std::cout << " the buffer with no spaces " << s << std::endl;
+        char* bytes = converHexToByte(s);
+
+        uint8_t *bufferHeader = (uint8_t *)calloc(1, s.length());
+        memcpy(bufferHeader, bytes, s.length());
+        ns3::Buffer bufferSciHeader = ns3::Buffer();
+        bufferSciHeader.Deserialize(bufferHeader, s.length());
+        ns3::NrSlSciF1aHeader sciHeader = ns3::NrSlSciF1aHeader();
+        ns3::Buffer::Iterator bufferSciHeaderIt = bufferSciHeader.Begin();
+        sciHeader.DeserializeForE2(bufferSciHeaderIt);
+        data = new v2x_sci_header_buffer_t(sciHeader);
+        free(bufferHeader);
+        delete[] bytes;
+    }catch(...){
+        // return empty struct
+        // checked in python if data is valid or not
+        data = new v2x_sci_header_buffer_t();
+    }
+
+    return data;
+}
+
+v2x_sci_tag_buffer_t*
+decode_v2x_sci_tag(uint8_t* buffer, size_t buffSize){
+    v2x_sci_tag_buffer_t* data;
+    try{
+        // uint8_t* buff = (uint8_t *) calloc(1, buffSize);
+        // memcpy(buff, buffer, buffSize);
+        std::string s((char*) buffer);
+        // removing white space if there is any
+        s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char x) { return std::isspace(x); }), s.end());
+
+        char* bytes = converHexToByte(s);
+        uint8_t *bufferTag = (uint8_t *)calloc(1, s.length());
+        memcpy(bufferTag, bytes, s.length());
+        ns3::Buffer bufferSciTag = ns3::Buffer();
+        bufferSciTag.Deserialize(bufferTag, s.length());
+        ns3::NrSlMacPduTag sciTag = ns3::NrSlMacPduTag();
+        ns3::Buffer::Iterator bufferSciTagIt = bufferSciTag.Begin();
+        sciTag.DeserializeForE2(bufferSciTagIt);
+
+        data = new v2x_sci_tag_buffer_t(sciTag);
+        free(bufferTag);
+        delete[] bytes;
+    }catch(...){
+        // return empty struct
+        // checked in python if data is valid or not
+        data = new v2x_sci_tag_buffer_t();
+    }
     return data;
 }
 
@@ -321,7 +416,10 @@ sctp_buffer_t* gnerate_e2ap_encode_handover_control_message(uint16_t* ue_id, uin
     // data->buffer = buf;
     // printf( "Data length %d", data->length);
 
-    delete allHandoversList;
+    free(allHandoversListPlmn);
+    // delete allHandoversList;
+    // delete allHandoversListPlmn;
+
     return data;
 }
 
@@ -390,7 +488,100 @@ sctp_buffer_t* generate_e2ap_encode_handover_control_message_plmn(uint16_t* ue_i
     // data->buffer = buf;
     // printf( "Data length %d", data->length);
 
-    delete allHandoversListPlmn;
+    free(allHandoversListPlmn);
     return data;
 }
  
+
+sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot_alloc_t* user_alloc, size_t size, char* plmnId){
+    
+    std::string plmn(plmnId);
+
+    // the python function shall give as input the data of the scheduling, which shall be encoded and treturn the buffer
+
+    // create the control message
+    V2X_Scheduling_All_UsersPlmn_t* v2XSchedulingAllUsersListPlmn = (V2X_Scheduling_All_UsersPlmn_t *) calloc(1, sizeof(V2X_Scheduling_All_UsersPlmn_t));
+    V2X_Scheduling_All_Users_t* v2xSchedulingAllUsersList = (V2X_Scheduling_All_Users_t *) calloc(1, sizeof(V2X_Scheduling_All_Users_t));
+    v2XSchedulingAllUsersListPlmn->plmn_id.buf = (uint8_t *) calloc (1, 3);
+    v2XSchedulingAllUsersListPlmn->plmn_id.size = 3;
+    memcpy (v2XSchedulingAllUsersListPlmn->plmn_id.buf, plmn.c_str (), 3);
+
+    v2XSchedulingAllUsersListPlmn->v2XSchedulingAllUsersList = v2xSchedulingAllUsersList;
+
+    // size = 0;
+    for(int _ind = 0; _ind<size; ++_ind){
+        // this is to shift the pointer to the next object
+        user_alloc+=_ind;
+        // test print the ue id
+        // goint to a single user 
+        // create single user scheduling object
+        V2X_Scheduling_User_t* v2XSingleUserScheduling = (V2X_Scheduling_User_t *) calloc(1, sizeof(V2X_Scheduling_User_t));
+        // adding v2 node id
+        v2XSingleUserScheduling->v2xNodeId = (long) user_alloc->ue_id;
+        // create the scheduling list for the single user
+        uint32_t userNumOfAllocation = user_alloc->userAllocationSize;
+        auto userAllocVecIt = user_alloc->userAllocation;
+        for (uint32_t userAllocInd = 0; userAllocInd< userNumOfAllocation; ++userAllocInd){
+            userAllocVecIt = userAllocVecIt+userAllocInd;
+        // for (auto userAllocVecIt = user_alloc->userAllocation.begin(); userAllocVecIt!=user_alloc->userAllocation.end(); ++userAllocVecIt){
+            V2X_Scheduling_Item_t* schedulingItem = (V2X_Scheduling_Item_t *) calloc(1, sizeof(V2X_Scheduling_Item_t));
+            // create std::vector of rlc pdu
+            std::vector<ns3::SlRlcPduInfo> rlRlcPduInfoVec;
+            auto slRlcPduInfoIt = userAllocVecIt->slRlcPduInfo;
+            for (int slRlcPduInd = 0; slRlcPduInd<userAllocVecIt->slRlcPduInfoSize; ++slRlcPduInd){
+                // auto slRlcPduInfoIt = userAllocVecIt->slRlcPduInfo + slRlcPduInd;
+                slRlcPduInfoIt = slRlcPduInfoIt + slRlcPduInd;
+                rlRlcPduInfoVec.push_back(ns3::SlRlcPduInfo(slRlcPduInfoIt->lcid, 
+                                        slRlcPduInfoIt->size));
+            }
+            ns3::NrSlSlotAlloc nrSlSlotAlloc = ns3::NrSlSlotAlloc(
+                userAllocVecIt->m_frameNum, userAllocVecIt->m_subframeNum, userAllocVecIt->m_slotNum, userAllocVecIt->m_numerology, 
+                userAllocVecIt->dstL2Id, userAllocVecIt->ndi, userAllocVecIt->rv, userAllocVecIt->priority, 
+                rlRlcPduInfoVec,
+                userAllocVecIt->mcs, userAllocVecIt->numSlPscchRbs, userAllocVecIt->slPscchSymStart, userAllocVecIt->slPscchSymLength, 
+                userAllocVecIt->slPsschSymStart, userAllocVecIt->slPsschSymLength, userAllocVecIt->slPsschSubChStart, 
+                userAllocVecIt->slPsschSubChLength, userAllocVecIt->maxNumPerReserve, userAllocVecIt->txSci1A, userAllocVecIt->slotNumInd
+
+            );
+            // user buffer for the serialization
+            uint32_t nrSlotAllocBufferSize = nrSlSlotAlloc.GetSerializedSizeForE2();
+            ns3::Buffer bufferNrSlotAlloc = ns3::Buffer();
+            bufferNrSlotAlloc.AddAtStart(nrSlotAllocBufferSize);
+            nrSlSlotAlloc.SerializeForE2(bufferNrSlotAlloc.Begin());
+            uint32_t extraSizeNrSlotAlloc = 30;
+            uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+            bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+            extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
+            Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
+            allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+            allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
+            memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+            schedulingItem->nrSlotAllocBuffer = *allocBufferString;
+            ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
+        }
+        // add this user the the list of all users
+        ASN_SEQUENCE_ADD(&v2xSchedulingAllUsersList->list, v2XSingleUserScheduling);
+    }
+    
+    // xer_fprint(stdout, &asn_DEF_V2X_Scheduling_All_UsersPlmn, v2XSchedulingAllUsersListPlmn);
+    // the rc control message which shall be returned to the python object
+    E2SM_RC_ControlMessage_t* rcControlMessage = (E2SM_RC_ControlMessage_t *) calloc(1, sizeof(E2SM_RC_ControlMessage_t));
+    rcControlMessage->present = E2SM_RC_ControlMessage_PR_v2xSchedulingMessage_Format;
+    rcControlMessage->choice.v2xSchedulingMessage_Format = v2XSchedulingAllUsersListPlmn;
+
+    // afterwords we have to generate the data part
+
+    sctp_buffer_t* data = (sctp_buffer_t *) calloc(1, sizeof(sctp_buffer_t));
+
+    uint8_t *buf;
+    // encoding the rcControl message created into the buffer object
+    data->length = e2ap_asn1c_encode_control_message(rcControlMessage, &buf);
+
+    data->buffer = (uint8_t *) calloc(1, data->length);
+    memcpy(data->buffer, buf, std::min(data->length, MAX_SCTP_BUFFER));
+
+    // freeing all the data before returning the struct
+    free(v2XSchedulingAllUsersListPlmn);
+    return data;
+
+}

@@ -5,6 +5,8 @@
  * 	`asn1c -fcompound-names -fno-include-deps -findirect-choice -pdu=auto -gen-PER -gen-OER -no-gen-example -D .`
  */
 
+// extern "C"
+
 #include "handover_list.h"
 
 #include "handover_item.h"
@@ -12,11 +14,12 @@
 #include <asn_application.h>
 #include <per_support.h>
 
-asn_per_constraints_t asn_PER_type_CellHandoverItemList_constr_1 CC_NOTUSED = {
-	{ asn_per_constraint_s::APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ asn_per_constraint_s::APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(0..65535)) */,
-	0, 0	/* No PER value map */
-};
+
+// asn_per_constraints_t asn_PER_type_CellHandoverItemList_constr_1 CC_NOTUSED = {
+// 	{ asn_per_constraint_s::APC_UNCONSTRAINED,	-1, -1,  0,  0 },
+// 	{ asn_per_constraint_s::APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(0..65535)) */,
+// 	0, 0	/* No PER value map */
+// };
 
 asn_TYPE_member_t asn_MBR_CellHandoverItemList_1[] = {
 	{ ATF_POINTER, 0, 0,
@@ -47,7 +50,7 @@ asn_TYPE_descriptor_t asn_DEF_CellHandoverItemList = {
 	asn_DEF_CellHandoverItemList_tags_1,	/* Same as above */
 	sizeof(asn_DEF_CellHandoverItemList_tags_1)
 		/sizeof(asn_DEF_CellHandoverItemList_tags_1[0]), /* 1 */
-	{ 0, &asn_PER_type_CellHandoverItemList_constr_1, SEQUENCE_OF_constraint },
+	{ 0, 0, SEQUENCE_OF_constraint },
 	asn_MBR_CellHandoverItemList_1,
 	1,	/* Single element */
 	&asn_SPC_CellHandoverItemList_specs_1	/* Additional specs */

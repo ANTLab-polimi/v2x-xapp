@@ -17,9 +17,9 @@
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 	/* Forward declarations */
 	struct CellHandoverList;
@@ -37,9 +37,9 @@
 	extern asn_TYPE_member_t asn_MBR_AllHandoversList_1[1];
 	extern asn_per_constraints_t asn_PER_type_AllHandoversList_constr_1;
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _CellHandoverItemList_H_ */
 #include <asn_internal.h>

@@ -26,11 +26,11 @@ extern "C" {
 #endif
 
 /* Forward declarations */
-// struct AllHandoversList;
+struct AllHandoversList;
 
 typedef struct AllHandoversListPlmn {
 	PLMN_Identity_t plmn_id;
-	AllHandoversList_t* allHandoversList;
+	struct AllHandoversList* allHandoversList;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;

@@ -26,6 +26,8 @@ file(GLOB HEADERS "*.h")
 # set(HEADERS control_message_encoder_decoder.h handover_control_message.h)
 
 include_directories(../../asn1c_defs)
+include_directories(../../ns3-decode)
+# include_directories(/usr/include)
 # include_directories(.)
 
 # add_library( ric_control_objects OBJECT ${SOURCES})

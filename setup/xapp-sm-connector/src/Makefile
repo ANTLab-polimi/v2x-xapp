@@ -1,7 +1,7 @@
 CXX:= g++ --std=c++14 -O2 -L/usr/local/lib
 CC:= gcc -O2 -L/usr/local/lib
 
-SRC:=./
+SRC:=.
 HWSRC:=./
 UTILSRC=./xapp-utils
 MSGSRC:=./xapp-mgmt
@@ -13,6 +13,7 @@ E2SMSRC:=./xapp-asn/e2sm
 # modified
 TINYXMLSRC:=./xapp-tinyxml2
 RICCONTROLSRC:=./xapp_ric_control
+NS3DECODESRC:=./ns3_decode
 # end modification
 
 ####### Logging library and flags
@@ -24,32 +25,21 @@ RNIB_LIBS:= -pthread /usr/local/include/rnib/rnibreader.a
 
 
 BASEFLAGS=  -Wall -std=c++14 $(CLOGFLAGS) 
-# original
 C_BASEFLAGS= -Wall $(CLOGFLAGS) -DASN_DISABLE_OER_SUPPORT
-# end original
-# modified
-# C_BASEFLAGS= -Wall $(CLOGFLAGS)
-# end modification
 
 XAPPFLAGS= -I./
 HWFLAGS= -I./
 UTILFLAGS= -I$(UTILSRC)
 MSGFLAGS= -I$(MSGSRC) 
 
-# original
-ASNFLAGS=-I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
-# end original
 # modified
-# ASNFLAGS=-I$(ASNSRC)
-# end modification
-E2APFLAGS = -I$(E2APSRC)
-E2SMFLAGS = -I$(E2SMSRC)
-
-# modified
+NS3DECODEFLAGS=-I$(NS3DECODESRC)
 TINYXMLFLAGS = -I$(TINYXMLSRC)
-
 CONTROLMESSAGEFLAGS = -I$(RICCONTROLSRC)
 # end modification
+ASNFLAGS=-I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
+E2APFLAGS = -I$(E2APSRC)
+E2SMFLAGS = -I$(E2SMSRC)
 
 ########libs
 
@@ -67,12 +57,8 @@ E2SM_SRC= $(wildcard $(E2SMSRC)/*.cc)
 ASN1C_SRC= $(wildcard $(ASNSRC)/*.c)
 
 # modified
+NS3DECODE_SRC= $(wildcard $(NS3DECODESRC)/*.cc)
 TINYXML_SRC=$(wildcard $(TINYXMLSRC)/*.cpp)
-
-# PYTHON_RIC_MESSAGE_ENCODER_SRC = control_message_encoder_decoder.cc
-# HANDOVER_CONTROL_MESSAGE_SRC = handover_control_message.cc
-# CONTROL_MESSAGE_SRC = $(PYTHON_RIC_MESSAGE_ENCODER_SRC) $(HANDOVER_CONTROL_MESSAGE_SRC)
-#  $(RICCONTROLSRC)/E2SM-RC-ControlMessage.c
 CONTROL_MESSAGE_SRC=$(wildcard $(RICCONTROLSRC)/*.cc)
 # end modification
 
@@ -84,51 +70,42 @@ MSG_OBJ=${MSG_SRC:.cc=.o}
 
 # modified
 TINYXML_OBJ=${TINYXML_SRC:.cpp=.o}
-
-# PYTHON_RIC_MESSAGE_ENCODER_OBJ=${PYTHON_RIC_MESSAGE_ENCODER_SRC:.cc=.o} 
-# HANDOVER_CONTROL_MESSAGE_OBJ=${HANDOVER_CONTROL_MESSAGE_SRC:.cc=.o} 
+NS3DECODE_OBJ=${NS3DECODE_SRC:.cc=.o}
 CONTROL_MESSAGE_OBJ = ${CONTROL_MESSAGE_SRC:.cc=.o}
 # end modification
 
 E2AP_OBJ = $(E2AP_SRC:.cc=.o)
 E2SM_OBJ = $(E2SM_SRC:.cc=.o)
+
 ASN1C_MODULES = $(ASN1C_SRC:.c=.o)
-
 $(ASN1C_MODULES): export CFLAGS = $(C_BASEFLAGS) $(ASNFLAGS)
-$(UTIL_OBJ):export CPPFLAGS=$(BASEFLAGS) $(UTILFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(MSGFLAGS)
 
-$(MSG_OBJ):export CPPFLAGS=$(BASEFLAGS) $(MSGFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(E2SMFLAGS)
+$(UTIL_OBJ):export CPPFLAGS=$(BASEFLAGS) $(UTILFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(MSGFLAGS) $(TINYXMLFLAGS)
+$(MSG_OBJ):export CPPFLAGS=$(BASEFLAGS) $(MSGFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(TINYXMLFLAGS)
+
 $(E2AP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2APFLAGS)
 $(E2SM_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2SMFLAGS)
-$(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
+$(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)  $(TINYXMLFLAGS)
 
-$(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
+$(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)  $(TINYXMLFLAGS)
 
 # modified
 $(TINYXML_OBJ):export CPPFLAGS= $(BASEFLAGS) $(TINYXMLFLAGS)
-
-$(CONTROL_MESSAGE_OBJ):export CPPFLAGS= $(C_BASEFLAGS) $(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
+$(NS3DECODE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(NS3DECODEFLAGS)
+$(CONTROL_MESSAGE_OBJ):export CPPFLAGS= $(C_BASEFLAGS) $(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(CONTROLMESSAGEFLAGS)
 # end modification
 
 #  $(CONTROL_MESSAGE_OBJ)
-OBJ= $(HWXAPP_OBJ) $(UTIL_OBJ) $(MSG_OBJ)  $(ASN1C_MODULES) $(E2AP_OBJ) $(E2SM_OBJ) $(XAPP_OBJ) $(TINYXML_OBJ)
+OBJ=  $(HWXAPP_OBJ) $(UTIL_OBJ) $(MSG_OBJ) $(ASN1C_MODULES) $(TINYXML_OBJ) $(E2AP_OBJ) $(E2SM_OBJ) $(XAPP_OBJ)  $(NS3DECODE_OBJ)
 
 print-%  : ; @echo $* = $($*)
 
 hw_xapp_main: $(OBJ)
 	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) agent_connector.cc
 
-# test_msg_creation: $(OBJ)
-# 	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(CONTROLMESSAGEFLAGS) test_msg_creation.cc
-
-
-# install: hw_xapp_main test_msg_creation
-# 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main
-# 	install  -D test_msg_creation  /usr/local/bin/test_msg_creation
-
 install: hw_xapp_main
 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main
 
 # $(RICCONTROLSRC)/*.o test_msg_creation
 clean:
-	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
+	-rm *.o $(NS3DECODE_OBJ)/*.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 

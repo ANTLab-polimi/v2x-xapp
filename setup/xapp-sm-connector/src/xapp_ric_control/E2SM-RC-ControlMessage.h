@@ -14,9 +14,9 @@
 #include <constr_CHOICE.h>
 // }
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Dependencies */
 typedef enum E2SM_RC_ControlMessage_PR {
@@ -24,7 +24,8 @@ typedef enum E2SM_RC_ControlMessage_PR {
 	E2SM_RC_ControlMessage_PR_controlMessage_Format1,
 	/* Extensions may appear below */
 	// modified
-	E2SM_RC_ControlMessage_PR_handoverMessage_Format
+	E2SM_RC_ControlMessage_PR_handoverMessage_Format,
+	E2SM_RC_ControlMessage_PR_v2xSchedulingMessage_Format
 	// end modification
 	
 } E2SM_RC_ControlMessage_PR;
@@ -33,6 +34,8 @@ typedef enum E2SM_RC_ControlMessage_PR {
 struct E2SM_RC_ControlMessage_Format1;
 // modified
 struct AllHandoversListPlmn;
+
+struct V2X_Scheduling_All_UsersPlmn;
 // end modification
 
 /* E2SM-RC-ControlMessage */
@@ -46,6 +49,8 @@ typedef struct E2SM_RC_ControlMessage {
 		 */
 		// modified
 		struct AllHandoversListPlmn *handoverMessage_Format;
+
+		struct V2X_Scheduling_All_UsersPlmn *v2xSchedulingMessage_Format;
 		// end modification
 	} choice;
 	
@@ -56,14 +61,14 @@ typedef struct E2SM_RC_ControlMessage {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_E2SM_RC_ControlMessage;
 // modified
-extern asn_CHOICE_specifics_t asn_SPC_E2SM_RC_ControlMessage_specs_1;
-extern asn_TYPE_member_t asn_MBR_E2SM_RC_ControlMessage_1[2];
-extern asn_per_constraints_t asn_PER_type_E2SM_RC_ControlMessage_constr_1;
+// extern asn_CHOICE_specifics_t asn_SPC_E2SM_RC_ControlMessage_specs_1;
+// extern asn_TYPE_member_t asn_MBR_E2SM_RC_ControlMessage_1[3];
+// extern asn_per_constraints_t asn_PER_type_E2SM_RC_ControlMessage_constr_1;
 // end modification
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _E2SM_RC_ControlMessage_H_ */
 #include <asn_internal.h>

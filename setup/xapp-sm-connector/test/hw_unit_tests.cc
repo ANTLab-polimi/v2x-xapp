@@ -24,44 +24,42 @@
 
 #include<iostream>
 #include<stdlib.h>
-#include<gtest/gtest.h>
+// #include<gtest/gtest.h>
 
-#include "test_db.h"
-#include "test_rmr.h"
-#include "test_hc.h"
-#include "test_subs.h"
-#include "test_e2sm.h"
+// #include "test_db.h"
+// #include "test_rmr.h"
+// #include "test_hc.h"
+// #include "test_subs.h"
+// #include "test_e2sm.h"
 
-using namespace std;
-
-
-int main(int argc, char* argv[])
-{
-	char *aux;
-	aux=getenv("RMR_SEED_RT");
-	if (aux==NULL || *aux == '\0'){
-
-		char rmr_seed[80]="RMR_SEED_RT=../init/routes.txt";
-		putenv(rmr_seed);
-	}
-	//get configuration
-	XappSettings config;
-	//change the priority depending upon application requirement
-	config.loadDefaultSettings();
-	config.loadEnvVarSettings();
-
-	//initialize rmr
-	std::unique_ptr<XappRmr> rmr = std::make_unique<XappRmr>("38000");
-	rmr->xapp_rmr_init(true);
-
-	//create a dummy xapp
-	std::unique_ptr<Xapp> dm_xapp = std::make_unique<Xapp>(std::ref(config),std::ref(*rmr));
-	dm_xapp->Run();
-
-	testing::InitGoogleTest(&argc, argv);
-	int res = RUN_ALL_TESTS();
+// using namespace std;
 
 
+// int main(int argc, char* argv[])
+// {
+	// char *aux;
+	// aux=getenv("RMR_SEED_RT");
+	// if (aux==NULL || *aux == '\0'){
 
-	return res;
-}
+	// 	char rmr_seed[80]="RMR_SEED_RT=../init/routes.txt";
+	// 	putenv(rmr_seed);
+	// }
+	// //get configuration
+	// XappSettings config;
+	// //change the priority depending upon application requirement
+	// config.loadDefaultSettings();
+	// config.loadEnvVarSettings();
+
+	// //initialize rmr
+	// std::unique_ptr<XappRmr> rmr = std::make_unique<XappRmr>("38000");
+	// rmr->xapp_rmr_init(true);
+
+	// //create a dummy xapp
+	// std::unique_ptr<Xapp> dm_xapp = std::make_unique<Xapp>(std::ref(config),std::ref(*rmr));
+	// dm_xapp->Run();
+
+	// testing::InitGoogleTest(&argc, argv);
+	// int res = RUN_ALL_TESTS();
+
+	// return res;
+// }

@@ -2,7 +2,6 @@
 # BS Connector
 #------------------------------------
 ARG SCHEMA_PATH=schemas
-# ARG IPSO_DIR=ipso-xapp
 ARG CONNECTOR_DIR=xapp-sm-connector
 ARG STAGE_DIR=/home/${CONNECTOR_DIR}
 ARG DBAAS_SERVICE_PORT="6379"
@@ -35,7 +34,8 @@ RUN pip install xmltodict \
   && pip install pyswarms \
   && pip install more-itertools
   # && pip install "ray[rllib]" \
-  # pip install ray tensorflow torch\
+  # && pip install tensorflow \
+# pip install ray tensorflow torch\
   # && pip install gymnasium \
   # && pip install tensorflow-probability
 
@@ -115,7 +115,18 @@ RUN cd ${STAGE_DIR} \
   && make install \
   && cd ${STAGE_DIR} \
   && rm -rf rapidjson
-# Install tensorflow
+
 
 RUN pip install tensorflow
+
+# install e2sim
+COPY ${CONNECTOR_DIR} ${STAGE_DIR}
+
+WORKDIR /home
+RUN mkdir -p traces
+RUN chmod -rwx traces
+
+WORKDIR ${STAGE_DIR}
+RUN mkdir -p build
+RUN ./ric_message_sl.sh
 

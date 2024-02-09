@@ -59,6 +59,12 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "all_handovers_plmn.h": "c",
+        "any": "cpp",
+        "optional": "cpp",
+        "iomanip": "cpp",
+        "variant": "cpp",
+        "cassert": "cpp"
     }
 }

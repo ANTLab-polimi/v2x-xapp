@@ -1,4 +1,13 @@
+#include "handover_list.h"
 #include "cell_handovers_list.h"
+#include "per_support.h"
+#include <NativeInteger.h>
+
+// asn_per_constraints_t asn_PER_type_CellHandoverList_constr_1 CC_NOTUSED = {
+// 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
+// 	{ APC_CONSTRAINED,	 1,  1,  0,  0 }	/* (SIZE(0..65535)) */,
+// 	0, 0	/* No PER value map */
+// };
 
 asn_TYPE_member_t asn_MBR_CellHandoverList_1[] = {
     { ATF_NOFLAGS, 0, offsetof(struct CellHandoverList, sourceCellId),

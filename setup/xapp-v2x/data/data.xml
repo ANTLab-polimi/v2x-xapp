@@ -1,0 +1,35 @@
+<message>
+    <E2SM-KPM-IndicationHeader>
+        <indicationHeader-Format1>
+            <collectionStartTime>00 00 00 00 00 00 5C EE</collectionStartTime>
+            <id-GlobalE2node-ID>
+                <eNB>
+                    <global-eNB-ID>
+                        <pLMN-Identity>31 31 31</pLMN-Identity>
+                        <eNB-ID>
+                            <macro-eNB-ID>31 00 00 (4 bits unused)
+</macro-eNB-ID>
+                        </eNB-ID>
+                    </global-eNB-ID>
+                </eNB>
+            </id-GlobalE2node-ID>
+        </indicationHeader-Format1>
+    </E2SM-KPM-IndicationHeader>
+    <E2SM-KPM-IndicationMessage>
+        <indicationMessage-Format1>
+            <pm-Containers>
+                <PM-Containers-Item>
+                    <performanceContainer>
+                        <oCU-CP>
+                            <cu-CP-Resource-Status>
+                                <numberOfActive-UEs>5</numberOfActive-UEs>
+                            </cu-CP-Resource-Status>
+                        </oCU-CP>
+                    </performanceContainer>
+                </PM-Containers-Item>
+            </pm-Containers>
+            <cellObjectID>NRCellCU</cellObjectID>
+            <list-of-matched-UEs />
+        </indicationMessage-Format1>
+    </E2SM-KPM-IndicationMessage>
+</message>
