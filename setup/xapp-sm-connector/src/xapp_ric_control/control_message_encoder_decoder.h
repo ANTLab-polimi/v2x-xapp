@@ -208,15 +208,34 @@ typedef struct v2x_nr_sl_slot_alloc{
 typedef struct v2x_user_nr_sl_slot_alloc{
 
   uint16_t ue_id{0};
+  uint16_t cReselCounter {std::numeric_limits <uint8_t>::max ()};
+  uint8_t slResoReselCounter {std::numeric_limits <uint8_t>::max ()};
+  uint8_t prevSlResoReselCounter {std::numeric_limits <uint8_t>::max ()};
+  uint8_t nrSlHarqId {std::numeric_limits <uint8_t>::max ()};
+  uint8_t nSelected {0};
+  uint8_t tbTxCounter {0};
   // std::vector <v2x_nr_sl_slot_alloc> userAllocation;
   // v2x_user_nr_sl_slot_alloc (uint16_t ue_id, std::vector <v2x_nr_sl_slot_alloc> userAllocation) :\std::vector <v2x_nr_sl_slot_alloc> userAllocation;
   uint32_t userAllocationSize {0};
   v2x_nr_sl_slot_alloc* userAllocation;
-  v2x_user_nr_sl_slot_alloc (uint16_t ue_id, uint32_t userAllocationSize, v2x_nr_sl_slot_alloc* userAllocation) :
-    ue_id (ue_id), userAllocationSize(userAllocationSize), userAllocation (userAllocation)
+  v2x_user_nr_sl_slot_alloc (uint16_t ue_id, uint32_t userAllocationSize, v2x_nr_sl_slot_alloc* userAllocation,
+                            uint16_t cReselCounter, uint8_t slResoReselCounter, uint8_t prevSlResoReselCounter, uint8_t nrSlHarqId, uint8_t nSelected, uint8_t tbTxCounter) :
+    ue_id (ue_id), userAllocationSize(userAllocationSize), userAllocation (userAllocation),
+    cReselCounter(cReselCounter), slResoReselCounter(slResoReselCounter), prevSlResoReselCounter(prevSlResoReselCounter),
+    nrSlHarqId(nrSlHarqId), nSelected(nSelected), tbTxCounter(tbTxCounter)
   {}
   v2x_user_nr_sl_slot_alloc(){}
 }v2x_user_nr_sl_slot_alloc_t;
+
+typedef struct v2x_source_slot_allocations{
+  uint16_t source_ue_id{0}; 
+  uint32_t destinationAllocationsSize {0};
+  v2x_user_nr_sl_slot_alloc* destinationAllocations; 
+  v2x_source_slot_allocations (uint16_t source_ue_id, uint32_t destinationAllocationsSize, v2x_user_nr_sl_slot_alloc* destinationAllocations) :
+    source_ue_id (source_ue_id), destinationAllocationsSize(destinationAllocationsSize), destinationAllocations (destinationAllocations)
+  {}
+  v2x_source_slot_allocations(){}
+}v2x_source_slot_allocations_t;
 
 int e2ap_asn1c_encode_handover_item(CellHandoverItem_t* pdu, unsigned char **buffer);
 
@@ -232,7 +251,9 @@ extern sctp_buffer_t* gnerate_e2ap_encode_handover_control_message(uint16_t* ue_
 
 extern sctp_buffer_t* generate_e2ap_encode_handover_control_message_plmn(uint16_t* ue_id, uint16_t* start_position, uint16_t* optimized, size_t size, char* plmnId);
 
-extern sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot_alloc_t* user_alloc, size_t size, char* plmnId);
+// extern sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot_alloc_t* user_alloc, size_t size, char* plmnId);
+
+extern sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_allocations* user_alloc, size_t size, char* plmnId);
 
 extern e2ap_stcp_buffer_t* decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize);
 

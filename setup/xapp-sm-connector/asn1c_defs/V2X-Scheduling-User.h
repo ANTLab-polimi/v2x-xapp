@@ -16,6 +16,7 @@
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
 #include <constr_SEQUENCE.h>
+#include <NativeInteger.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,12 @@ struct V2X_Scheduling_Item;
 /* V2X_Scheduling_User */
 typedef struct V2X_Scheduling_User {
 	V2XId_t	 v2xNodeId;
+	long cReselectionCounter;
+	long slResourceReselectionCounter;
+	long prevSlResoReselCounter;
+	long nrSlHarqId;
+	long nSelected;
+	long tbTxCounter;
 	struct V2X_Scheduling_User__V2X_Scheduling_ItemList {
 		A_SEQUENCE_OF(struct V2X_Scheduling_Item) list;
 		
@@ -45,7 +52,7 @@ typedef struct V2X_Scheduling_User {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2X_Scheduling_User;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2X_Scheduling_User_specs_1;
-extern asn_TYPE_member_t asn_MBR_V2X_Scheduling_User_1[2];
+extern asn_TYPE_member_t asn_MBR_V2X_Scheduling_User_1[8];
 
 #ifdef __cplusplus
 }

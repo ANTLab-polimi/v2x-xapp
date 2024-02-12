@@ -12,6 +12,7 @@ from ctrl_msg_encoder_decoder import RicControlMessageEncoder
 from numpy import iinfo as c_types_info
 from numpy import uint8, uint16, uint32
 import os
+from operator import itemgetter
 
 # _MAIN_TAG = ["E2AP-PDU"]
 _MAIN_TAG = ["message"]
@@ -44,6 +45,9 @@ _GENERATING_MILLICAR_IMSI = "UEID.Imsi"
 _GENERATING_MILLICAR_SINGLE_REPORT = "SingleReport"
 _GENERATING_MILLICAR_NODE_POSITION_X = "PosX"
 _GENERATING_MILLICAR_NODE_POSITION_Y = "PosY"
+_GENERATING_MILLICAR_FRAME = "Frame"
+_GENERATING_MILLICAR_SUBFRAME = "SubFrame"
+_GENERATING_MILLICAR_SLOT = "Slot"
 _GENERATING_MILLICAR_NODE_RSRP_DBM = "RsrpdBm"
 
 # sci header 
@@ -85,6 +89,10 @@ _SCI_MESSAGE_V2X = ["userReceivedSciMessages", 'V2XSciMessageItem']
 _SCI_HEADER_V2X = ["header"]
 _SCI_TAG_V2X = ["tag"]
 
+_JSON_FRAME = "Frame"
+_JSON_SUBFRAME = "Subframe"
+_JSON_SLOT = "Slot"
+
 _JSON_SINR = "sinr"
 _JSON_MCS = "mcs"
 _JSON_IMSI = "imsi"
@@ -112,6 +120,7 @@ _JSON_PACKET_DELAYS_DELAY_INTERVAL_LOWER_INTERVAL = "lowerInterval"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL = "upperInterval"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS = "numberOfPackets"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD = "reservationPeriod"
+_JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE = "bufferSize"
 
 # sci message 
 _JSON_SCI_MESSAGES = "sciMessages"
@@ -119,59 +128,8 @@ _JSON_SCI_MESSAGE_HEADER = "header"
 _JSON_SCI_MESSAGE_TAG = "tag"
 
 
-# class PacketDelayAllUsersBufferDelays:
-#     def __init__(self, input_dict):
-#         self._input_dict = input_dict
-#         self.all_users_connections_delays:List[PacketDelaySingleUserConnectionsDelay] = []
-#     def _parse(self, input_dict):
-#         _packet_delay_all_users_connections_intervals = reduce(operator.getitem, _PACKET_DELAYS_ALL_USERS_ALL_CONNECTIONS, input_dict)
-#         try:
-#             _packet_delay_all_users_connections_intervals_list:List[PacketDelayConnectionsIntervals] = []
-#             if isinstance(_packet_delay_all_users_connections_intervals, list):
-#                 for _packet_delay_all_users_connections_interval in _packet_delay_all_users_connections_intervals:
-#                     _packet_delay_all_users_connections_interval_instace = PacketDelayConnectionsIntervals(_packet_delay_all_users_connections_interval)
-#                     if _packet_delay_all_users_connections_interval_instace.is_valid():
-#                         _packet_delay_all_users_connections_intervals_list.append(_packet_delay_all_users_connections_interval_instace)
-#             else:
-#                 _packet_delay_all_users_connections_interval_instace = PacketDelayConnectionsIntervals(_packet_delay_all_users_connections_intervals)
-#                 if _packet_delay_all_users_connections_interval_instace.is_valid():
-#                     _packet_delay_all_users_connections_intervals_list.append(_packet_delay_all_users_connections_interval_instace)
-#             self.all_users_connections_delays = _packet_delay_all_users_connections_intervals_list
-#         except KeyError:
-#             pass
-#     def is_valid(self):
-#         return all([_all_users_connection_delays.is_valid() for _all_users_connection_delays in self.all_users_connections_delays])
-#     def to_dict(self):
-#         return {
-#                 _JSON_PACKET_DELAYS_ALL_USERS_ALL_CONNECTIONS: [user_connection_delays.to_dict() for user_connection_delays in self.all_users_connections_delays],
-#                 _JSON_TIMESTAMP: str(datetime.datetime.now())
-#                 }    
-#     def __str__(self) -> str:
-#         return str(self.all_users_connections_delays) + ","  + str(datetime.datetime.now())
-#     def str_var_order() -> str:
-#         return  _JSON_PACKET_DELAYS_ALL_USERS_ALL_CONNECTIONS + "," + \
-#                 _JSON_TIMESTAMP
-# class V2XUserSingleReport:
-#     def __init__(self, input_dict, decoder:RicControlMessageEncoder):
-#         self._input_dict = input_dict
-#         self.sci_messages: V2XSciMessages = None
-#         self.user_packet_delays: PacketDelaySingleUserConnectionsDelay = None
-#     def is_valid(self):
-#         return self.sci_messages.is_valid() & self.user_packet_delays.is_valid()    
-#     def __str__(self) -> str:
-#         return str(self.sci_messages) + "," + str(self.user_packet_delays) + "," + str(datetime.datetime.now())
-#     def to_dict(self):
-#         return{
-#             _JSON_SCI_MESSAGES: [_sci_message.to_dict() for _sci_message in self.sci_messages],
-#             _JSON_TIMESTAMP: str(datetime.datetime.now())
-#         }
-#     def str_var_order() -> str:
-#         return  _JSON_SCI_MESSAGES + "," + \
-#                 _JSON_TIMESTAMP
-
-
 class V2XSciTag:
-    def __init__(self, buffer: str, decoder:RicControlMessageEncoder):
+    def __init__(self, buffer: str, decoder:RicControlMessageEncoder, from_dict=None):
         self._buffer = buffer
         self._decoder = decoder
         self._frameNum = 0
@@ -184,7 +142,14 @@ class V2XSciTag:
         self._tbSize = 0
         self._dstL2Id = 0
         # decoding the tag buffer through the c libraries
-        self.decode_sci_tag()
+        # self.decode_sci_tag()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            # decoding the tag buffer through the c libraries
+            self.decode_sci_tag()
 
     def decode_sci_tag(self):
         (frameNum, subframeNum, slotNum, numerology, 
@@ -222,6 +187,17 @@ class V2XSciTag:
                 _SCI_TAG_TBSIZE : self._tbSize,
                 _SCI_TAG_DSTL2ID : self._dstL2Id}
 
+    def _from_dict(self):
+        self._frameNum = self._from_dict_data[_SCI_TAG_FRAMENUM]
+        self._subframeNum = self._from_dict_data[_SCI_TAG_SUBFRAMENUM]
+        self._slotNum = self._from_dict_data[_SCI_TAG_SLOTNUM]
+        self._numerology = self._from_dict_data[_SCI_TAG_NUMEROLOGY]
+        self._rnti = self._from_dict_data[_SCI_TAG_RNTI]
+        self._symStart = self._from_dict_data[_SCI_TAG_SYMSTART]
+        self._numSym = self._from_dict_data[_SCI_TAG_NUMSYM]
+        self._tbSize = self._from_dict_data[_SCI_TAG_TBSIZE]
+        self._dstL2Id = self._from_dict_data[_SCI_TAG_DSTL2ID]
+
     def __str__(self) -> str:
         return str(self._frameNum) + "," + str(self._subframeNum) + "," + str(self._slotNum) + "," + \
         str(self._numerology) + "," + str(self._rnti) + "," + str(self._symStart) + "," + \
@@ -239,7 +215,7 @@ class V2XSciTag:
                 _SCI_TAG_DSTL2ID
 
 class V2XSciHeader:
-    def __init__(self, buffer: str, decoder:RicControlMessageEncoder):
+    def __init__(self, buffer: str, decoder:RicControlMessageEncoder, from_dict=None):
         self._buffer = buffer
         self._decoder = decoder
         self._total_subchannels = c_types_info(uint16).max
@@ -254,9 +230,13 @@ class V2XSciHeader:
         self._indexStartSbChReTx2 = c_types_info(uint8).max
         self._gapReTx1 = c_types_info(uint8).max
         self._gapReTx2 = c_types_info(uint8).max
-
-        # decoding the tag buffer through the c libraries
-        self.decode_header_buffer()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            # decoding the tag buffer through the c libraries
+            self.decode_header_buffer()
 
     def decode_header_buffer(self):
         (_total_subchannels, _priority, _indexStartSubChannel, _lengthSubChannel, _mcs, 
@@ -309,6 +289,20 @@ class V2XSciHeader:
                 _SCI_HEADER_GAPRETX1 : self._gapReTx1,
                 _SCI_HEADER_GAPRETX2 : self._gapReTx2}
 
+    def _from_dict(self):
+        self._total_subchannels = self._from_dict_data[_SCI_HEADER_TOTAL_SUBCHANNELS]
+        self._priority = self._from_dict_data[_SCI_HEADER_PRIORITY]
+        self._indexStartSubChannel = self._from_dict_data[_SCI_HEADER_INDEXSTARTSUBCHANNEL]
+        self._lengthSubChannel = self._from_dict_data[_SCI_HEADER_LENGTHSUBCHANNEL]
+        self._mcs = self._from_dict_data[_SCI_HEADER_MCS]
+        self._slResourceReservePeriod = self._from_dict_data[_SCI_HEADER_SLRESOURCERESERVEPERIOD]
+        self._slMaxNumPerReserve = self._from_dict_data[_SCI_HEADER_SLMAXNUMPERRESERVE]
+        self._slSciStage2Format = self._from_dict_data[_SCI_HEADER_SLSCISTAGE2FORMAT]
+        self._indexStartSbChReTx1 = self._from_dict_data[_SCI_HEADER_INDEXSTARTSBCHRETX1]
+        self._indexStartSbChReTx2 = self._from_dict_data[_SCI_HEADER_INDEXSTARTSBCHRETX2]
+        self._gapReTx1 = self._from_dict_data[_SCI_HEADER_GAPRETX1]
+        self._gapReTx2 = self._from_dict_data[_SCI_HEADER_GAPRETX2]
+
     def __str__(self) -> str:
         return str(self._total_subchannels) + "," + str(self._priority) + "," + str(self._indexStartSubChannel) + "," + str(self._lengthSubChannel) + "," + \
         str(self._mcs) + "," + str(self._slResourceReservePeriod) + "," + str(self._slMaxNumPerReserve) + "," + str(self._slSciStage2Format) + "," + \
@@ -330,12 +324,17 @@ class V2XSciHeader:
                 
 
 class V2XSciMessage:
-    def __init__(self, input_dict, decoder:RicControlMessageEncoder):
+    def __init__(self, input_dict, decoder:RicControlMessageEncoder, from_dict=None):
         self._input_dict = input_dict
         self._decoder = decoder
         self.header: V2XSciHeader = None
         self.tag: V2XSciTag = None
-        self._parse()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            self._parse()
 
     def _parse(self, input_dict: Union[dict, List[dict]] = None):
         
@@ -365,17 +364,28 @@ class V2XSciMessage:
             _JSON_SCI_MESSAGE_HEADER: self.header.to_dict(),
             _JSON_SCI_MESSAGE_TAG: self.tag.to_dict()
         }
+
+    def _from_dict(self):
+        _sci_header_dict = self._from_dict_data[_JSON_SCI_MESSAGE_HEADER]
+        _sci_tag_dict = self._from_dict_data[_JSON_SCI_MESSAGE_TAG]
+        self.header = V2XSciHeader("", None, _sci_header_dict) if _sci_header_dict is not None  else None
+        self.tag = V2XSciTag("", None, _sci_tag_dict) if _sci_tag_dict is not None else None
     
     def str_var_order() -> str:
         return  _JSON_SCI_MESSAGE_HEADER + "," + \
                 _JSON_SCI_MESSAGE_TAG
 
 class V2XSciMessages:
-    def __init__(self, input_dict, decoder:RicControlMessageEncoder):
+    def __init__(self, input_dict, decoder:RicControlMessageEncoder, from_dict=None):
         self._input_dict = input_dict
         self.sci_messages: List[V2XSciMessage]= []
         self.decoder: RicControlMessageEncoder = decoder
-        self._parse()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            self._parse()
 
     def _parse(self, input_dict: Union[dict, List[dict]] = None):
         if input_dict is None:
@@ -410,15 +420,27 @@ class V2XSciMessages:
 
     def str_var_order() -> str:
         return  _JSON_SCI_MESSAGES
+    
+    def _from_dict(self):
+        self.sci_messages = [V2XSciMessage(None, None, from_dict=_sci_dict_msg) for _sci_dict_msg in self._from_dict_data[_JSON_SCI_MESSAGES]]
+        
 
 class PacketDelayInterval:
-    def __init__(self, input_dict):
+    def __init__(self, input_dict, from_dict=None):
         self._input_dict = input_dict
         self.lowerInterval: float = None
         self.upperInterval:float = None
         self.numberOfPackets: int = -1
-        self.reservationPeriod: float = None
+        self.bufferSize:int = -1
+        self.reservationPeriod: float = None # the reservation period or the periodicity of traffic
         self._parse()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            # decoding the tag buffer through the c libraries
+            self._parse()
 
     def _parse(self, input_dict: Union[dict, List[dict]] = None):
         if input_dict is None:
@@ -428,6 +450,7 @@ class PacketDelayInterval:
             self.upperInterval = float(reduce(operator.getitem, _PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL, input_dict))
             self.numberOfPackets = int(reduce(operator.getitem, _PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS, input_dict))
             self.reservationPeriod = float(reduce(operator.getitem, _PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD, input_dict))
+            self.bufferSize = int(reduce(operator.getitem, _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE, input_dict))
         except KeyError:
             # print("Error in PacketDelayInterval")
             pass
@@ -440,7 +463,15 @@ class PacketDelayInterval:
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL: self.upperInterval,
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS: self.numberOfPackets,
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD: self.reservationPeriod,
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE: self.bufferSize
                 }
+    
+    def _from_dict(self):
+        self.lowerInterval = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_LOWER_INTERVAL]
+        self.upperInterval = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL]
+        self.numberOfPackets = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS]
+        self.reservationPeriod = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD]
+        self.bufferSize = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE]
     
     def __str__(self) -> str:
         return str(self.lowerInterval) + "," + str(self.upperInterval) + "," + str(self.numberOfPackets) + "," + str(self.reservationPeriod)
@@ -452,11 +483,16 @@ class PacketDelayInterval:
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD
 
 class PacketDelayConnectionsIntervals:
-    def __init__(self, input_dict: Union[dict, List[dict]] = None):
+    def __init__(self, input_dict: Union[dict, List[dict]] = None, from_dict=None):
         self._input_dict = input_dict
         self.ue_id: int = -1
         self.delayIntervals:List[PacketDelayInterval] = []
-        self._parse()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            self._parse()
 
     def _parse(self, input_dict: Union[dict, List[dict]] = None):
         if input_dict is None:
@@ -487,6 +523,10 @@ class PacketDelayConnectionsIntervals:
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST: [delays_interval.to_dict() for delays_interval in self.delayIntervals],
                 }
     
+    def _from_dict(self):
+        self.ue_id = self._from_dict_data[_JSON_PACKET_DELAYS_USER_ID]
+        self.delayIntervals = [PacketDelayInterval(None, from_dict=_packet_delay_interval_msg) for _packet_delay_interval_msg in self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST]]
+
     def __str__(self) -> str:
         return str(self.ue_id) + "," + str([str(delay_interval) for delay_interval in self.delayIntervals])
 
@@ -495,11 +535,16 @@ class PacketDelayConnectionsIntervals:
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST
     
 class PacketDelaySingleUserConnectionsDelay:
-    def __init__(self, input_dict):
+    def __init__(self, input_dict, from_dict=None):
         self._input_dict = input_dict
         self.ue_id: int = -1
         self.all_connections_delays:List[PacketDelayConnectionsIntervals] = []
-        self._parse()
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            self._parse()
 
     def _parse(self, input_dict: Union[dict, List[dict]] = None):
         if input_dict is None:
@@ -534,6 +579,11 @@ class PacketDelaySingleUserConnectionsDelay:
                 _JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS: [connection_delays.to_dict() for connection_delays in self.all_connections_delays],
                 }
     
+    def _from_dict(self):
+        self.ue_id = self._from_dict_data[_JSON_PACKET_DELAYS_USER_ID]
+        self.all_connections_delays = [PacketDelayConnectionsIntervals(None, from_dict=_packet_delays_single_user_msg) for _packet_delays_single_user_msg in self._from_dict_data[_JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS]]
+
+    
     def __str__(self) -> str:
         return str(self.ue_id) + "," + str([str(_connection) for _connection in  self.all_connections_delays])
 
@@ -542,7 +592,9 @@ class PacketDelaySingleUserConnectionsDelay:
                 _JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS
 
 class MillicarUeSingleReport:
-    def __init__(self, input_dict, decoder:RicControlMessageEncoder, header_collection_time: int = -1):
+    def __init__(self, input_dict, decoder:RicControlMessageEncoder, header_collection_time: int = -1,
+                 from_dict=None
+                 ):
         self._input_dict = input_dict
         self._decoder = decoder
         self.ue_id: int = -1
@@ -550,9 +602,29 @@ class MillicarUeSingleReport:
         self.imsi:int = -1
         self.position_x:float = None
         self.position_y:float = None
+        self.frame: int = -1
+        self.subframe: int = -1
+        self.slot: int = -1
         self.sci_messages: V2XSciMessages = None
         self.user_packet_delays: PacketDelaySingleUserConnectionsDelay = None
         self.collection_time = header_collection_time
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+
+    def _from_dict(self):
+        self.rnti = self._from_dict_data[_JSON_SOURCE_RNTI]
+        self.imsi = self._from_dict_data[_JSON_SOURCE_IMSI]
+        self.ue_id = self._from_dict_data[_JSON_SOURCE_UE_ID]
+        self.frame = self._from_dict_data[_JSON_FRAME]
+        self.subframe = self._from_dict_data[_JSON_SUBFRAME]
+        self.slot = self._from_dict_data[_JSON_SLOT]
+        self.position_x = self._from_dict_data[_JSON_POSITION_X]
+        self.position_y = self._from_dict_data[_JSON_POSITION_Y]
+        self.sci_messages = V2XSciMessages (None, None, from_dict=self._from_dict_data[_JSON_SCI_MESSAGES]) if self._from_dict_data[_JSON_SCI_MESSAGES] is not None else None
+        self.user_packet_delays = PacketDelaySingleUserConnectionsDelay(None, from_dict=self._from_dict_data[_JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS]) if self._from_dict_data[_JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS] is not None else None
+        self.collection_time = self._from_dict_data[_JSON_COLLECTION_TIME]
 
     def _parse_pm_container_single_element(self, input_dict=None):
         name_field = reduce(operator.getitem, _PM_INFO_ITEM_TYPE, input_dict)
@@ -565,6 +637,12 @@ class MillicarUeSingleReport:
             self.position_x = int(reduce(operator.getitem, ['valueReal'], _single_data_dict))
         if name_field == _GENERATING_MILLICAR_NODE_POSITION_Y:
             self.position_y = int(reduce(operator.getitem, ['valueReal'], _single_data_dict))
+        if name_field == _GENERATING_MILLICAR_FRAME:
+            self.frame = int(reduce(operator.getitem, ['valueInt'], _single_data_dict))
+        if name_field == _GENERATING_MILLICAR_SUBFRAME:
+            self.subframe = int(reduce(operator.getitem, ['valueInt'], _single_data_dict))
+        if name_field == _GENERATING_MILLICAR_SLOT:
+            self.slot = int(reduce(operator.getitem, ['valueInt'], _single_data_dict))
 
     def _parse_pm_container(self, input_dict=None):
         if input_dict is None:
@@ -575,7 +653,6 @@ class MillicarUeSingleReport:
         else:
             self._parse_pm_container_single_element(input_dict)
         
-
     def parse(self, input_dict: Union[dict, List[dict]] = None):
         if input_dict is None:
             input_dict = self._input_dict
@@ -586,6 +663,7 @@ class MillicarUeSingleReport:
             self.imsi = self.ue_id
             _list_pm_info_dict = reduce(operator.getitem, _PM_CONTAINERS_LIST_PM_INFORMATION, input_dict)
             self._parse_pm_container(_list_pm_info_dict)
+
         except KeyError:
             pass
 
@@ -597,6 +675,7 @@ class MillicarUeSingleReport:
 
     def to_dict(self):
         return {_JSON_SOURCE_RNTI: self.rnti, _JSON_SOURCE_IMSI: self.imsi, _JSON_SOURCE_UE_ID:self.ue_id,
+                _JSON_FRAME: self.frame, _JSON_SUBFRAME: self.subframe, _JSON_SLOT: self.slot,
                 _JSON_POSITION_X: self.position_x, _JSON_POSITION_Y: self.position_y,
                 _JSON_SCI_MESSAGES: self.sci_messages.to_dict(), _JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS: self.user_packet_delays.to_dict(), 
                 _JSON_COLLECTION_TIME: self.collection_time, _JSON_TIMESTAMP: str(datetime.datetime.now()),
@@ -608,22 +687,32 @@ class MillicarUeSingleReport:
                 str(self.sci_messages) + "," + str(self.user_packet_delays) + "," + \
                 str(self.collection_time) + str(datetime.datetime.now())
     
-     
-            
     def str_var_order() -> str:
         return _JSON_SOURCE_RNTI + "," + _JSON_SOURCE_IMSI + "," + _JSON_SOURCE_UE_ID + "," + \
                 _JSON_POSITION_X + "," + _JSON_POSITION_X + "," + \
                 _JSON_SCI_MESSAGES + "," + _JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS + "," + \
                 _JSON_COLLECTION_TIME + "," + _JSON_TIMESTAMP 
 
+    def get_frame_encoding(self) -> int:
+        return self.slot + self.subframe*100 + self.frame*1000
 
 class XmlToDictDataTransform:
-    def __init__(self, decoder:RicControlMessageEncoder, plmn="110"):
+    def __init__(self, decoder:RicControlMessageEncoder, plmn="110", from_dict=None):
         self.num_of_received_reports = 0
         self.num_of_reports = 0
         self._decoder = decoder
         self.plmn_id = plmn
+        self.frame: int = -1
+        self.subframe: int = -1
+        self.slot: int = -1
         self.all_users_reports: List[MillicarUeSingleReport] = []
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+
+    def get_frame_encoding(self) -> int:
+        return self.slot + self.subframe*100 + self.frame*1000
 
     def reset(self):
         self.num_of_received_reports = 0
@@ -727,6 +816,19 @@ class XmlToDictDataTransform:
 
     def parse_message_single_report(self, input_dict: Mapping, header_collection_time: int):
         _reports_per_user_list: List[MillicarUeSingleReport] = self._parse_message_ues_single_report(input_dict, header_collection_time)
+
+        # sync with maximum slot
+        try:
+            _max_frame_sync = max(filter(lambda ue_report: ue_report.get_frame_encoding(), _reports_per_user_list), key=itemgetter(1))
+            self.frame = _max_frame_sync.frame
+            self.subframe = _max_frame_sync.subframe
+            self.slot = _max_frame_sync.slot
+        except ValueError:
+            # should not happen just for safety
+            self.frame = -1
+            self.subframe = -1
+            self.slot = -1
+        
         # can receive multi-user reports in a single msg
         self.all_users_reports+=_reports_per_user_list
         pickle_out = open('/home/traces/ue_reports_' + self.plmn_id + '.pickle', 'ab+')
@@ -775,8 +877,18 @@ class XmlToDictDataTransform:
         return {
             _JSON_TIMESTAMP: str(datetime.datetime.now()),
             _JSON_PLMN: self.plmn_id,
+            _JSON_FRAME: self.frame,
+            _JSON_SUBFRAME: self.subframe,
+            _JSON_SLOT: self.slot,
             _JSON_ALL_UE_REPORTS: [report.to_dict() for report in self.all_users_reports]
         }
+    
+    def _from_dict(self):
+        self.plmn_id = self._from_dict_data[_JSON_PLMN]
+        self.frame = self._from_dict_data[_JSON_FRAME]
+        self.subframe = self._from_dict_data[_JSON_SUBFRAME]
+        self.slot = self._from_dict_data[_JSON_SLOT]
+        self.all_users_reports = [MillicarUeSingleReport(_ue_report) for _ue_report in self._from_dict_data[_JSON_ALL_UE_REPORTS]]
 
 
 # _msg = b'<message><E2SM-KPM-IndicationHeader><indicationHeader-Format1><collectionStartTime>65 6C 66 65 72 28 21 00</collectionStartTime><id-GlobalE2node-ID><gNB><global-gNB-ID><plmn-id>31 31 31</plmn-id><gnb-id><gnb-ID>31 00 00 00\n                        </gnb-ID></gnb-id></global-gNB-ID></gNB></id-GlobalE2node-ID></indicationHeader-Format1></E2SM-KPM-IndicationHeader><E2SM-KPM-IndicationMessage><indicationMessage-Format1><pm-Containers><PM-Containers-Item><performanceContainer><oCU-CP><cu-CP-Resource-Status><numberOfActive-UEs>2</numberOfActive-UEs></cu-CP-Resource-Status></oCU-CP></performanceContainer></PM-Containers-Item></pm-Containers><cellObjectID>NRCellCU</cellObjectID><list-of-matched-UEs><PerUE-PM-Item><ueId>30 30 30 30 31</ueId><list-of-PM-Information><PM-Info-Item><pmType><measName>GeneratingNode.Rnti.UEID</measName></pmType><pmVal><valueInt>1</valueInt></pmVal></PM-Info-Item><PM-Info-Item><pmType><measName>GeneratingNode.PositionX.UEID</measName></pmType><pmVal><valueInt>0</valueInt></pmVal></PM-Info-Item><PM-Info-Item><pmType><measName>GeneratingNode.PositionY.UEID</measName></pmType><pmVal><valueInt>3</valueInt></pmVal></PM-Info-Item><PM-Info-Item><pmType><measName>HO.TrgtCellQual.RS-SINR.UEID</measName></pmType><pmVal><valueRRC><rrcEvent><b1/></rrcEvent></valueRRC></pmVal></PM-Info-Item></list-of-PM-Information></PerUE-PM-Item></list-of-matched-UEs></indicationMessage-Format1></E2SM-KPM-IndicationMessage></message>'

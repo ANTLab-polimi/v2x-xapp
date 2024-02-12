@@ -21,6 +21,15 @@ _V2X_SLPSSCHSUBCHLENGTH = "SLPSSCHSUBCHLENGTH"
 _V2X_MAXNUMPERRESERVE = "MAXNUMPERRESERVE"
 _V2X_TXSCI1A = "TXSCI1A"
 _V2X_SLOTNUMIND = "SLOTNUMIND"
+_V2X_UE_ID = "ue_id"
+_V2X_CRESELCOUNTER = "cReselCounter"
+_V2X_SLRESORESELCOUNTER = "slResoReselCounter"
+_V2X_PREVSLRESORESELCOUNTER = "prevSlResoReselCounter"
+_V2X_NRSLHARQID = "nrSlHarqId"
+_V2X_NSELECTED = "nSelected"
+_V2X_TBTXCOUNTER = "tbTxCounter"
+_V2X_USERALLOCATIONSIZE = "userAllocationSize"
+_V2X_USERSCHEDULING = "userScheduling"
 
 
 
@@ -49,8 +58,10 @@ class SingleScheduling:
                 slPscchSymStart = int(np.iinfo(np.uint16).max), 
                 slPscchSymLength = int(np.iinfo(np.uint16).max), 
                 slPsschSymStart = int(np.iinfo(np.uint16).max), 
-                slPsschSymLength = int(np.iinfo(np.uint16).max), slPsschSubChStart = int(np.iinfo(np.uint16).max), 
-                slPsschSubChLength = int(np.iinfo(np.uint16).max), maxNumPerReserve = int(np.iinfo(np.uint16).max), 
+                slPsschSymLength = int(np.iinfo(np.uint16).max), 
+                slPsschSubChStart = int(np.iinfo(np.uint16).max), 
+                slPsschSubChLength = int(np.iinfo(np.uint16).max), 
+                maxNumPerReserve = int(np.iinfo(np.uint16).max), 
                 txSci1A: bool=False, slotNumInd =  0):
         self._m_frameNum = m_frameNum
         self._m_subframeNum = m_subframeNum
@@ -155,15 +166,62 @@ class SingleScheduling:
 
 
 class UserScheduling:
-    def __init__(self, ue_id) -> None:
+    def __init__(self, ue_id, 
+                 cReselCounter =  int(np.iinfo(np.uint16).max), 
+                 slResoReselCounter = int(np.iinfo(np.uint8).max), 
+                 prevSlResoReselCounter = int(np.iinfo(np.uint8).max), 
+                 nrSlHarqId = int(np.iinfo(np.uint8).max), 
+                 nSelected = int(np.iinfo(np.uint8).max), 
+                 tbTxCounter = int(np.iinfo(np.uint8).max)) -> None:
         self.ue_id = ue_id
-        self.single_scheduling:List[SingleScheduling] = []
+        self.cReselCounter = cReselCounter
+        self.slResoReselCounter = slResoReselCounter
+        self.prevSlResoReselCounter = prevSlResoReselCounter
+        self.nrSlHarqId = nrSlHarqId
+        self.nSelected = nSelected
+        self.tbTxCounter = tbTxCounter
+        self.user_scheduling:List[SingleScheduling] = []
         
     def add_single_scheduling(self, single_sched: SingleScheduling):
-        self.single_scheduling.append(single_sched)
+        self.user_scheduling.append(single_sched)
 
     def to_dict_c(self):
         return{
             "ue_id": self.ue_id,
-            "userScheduling" : [_singleSched.to_dict_c() for _singleSched in self.single_scheduling]
+            "cReselCounter" : self.cReselCounter,
+            "slResoReselCounter" : self.slResoReselCounter,
+            "prevSlResoReselCounter" : self.prevSlResoReselCounter,
+            "nrSlHarqId" : self.nrSlHarqId,
+            "nSelected" : self.nSelected,
+            "tbTxCounter" : self.tbTxCounter,
+            "userScheduling" : [_singleSched.to_dict_c() for _singleSched in self.user_scheduling]
             }
+    def __str__(self) -> str:
+        return str(self.ue_id) + "," + str(self.cReselCounter) + "," + str(self.slResoReselCounter) + "," + \
+              str(self.prevSlResoReselCounter) + "," + str(self.nrSlHarqId) + "," + str(self.nSelected) + \
+                "," + str(self.tbTxCounter) + "," + str(self.user_scheduling)
+
+    def str_var_order() -> str:
+        return  _V2X_UE_ID + "," + \
+                _V2X_CRESELCOUNTER + "," + \
+                _V2X_SLRESORESELCOUNTER + "," + \
+                _V2X_PREVSLRESORESELCOUNTER + "," + \
+                _V2X_NRSLHARQID + "," + \
+                _V2X_NSELECTED + "," + \
+                _V2X_TBTXCOUNTER + "," + \
+                _V2X_USERSCHEDULING
+    
+class SourceUserScheduling:
+    def __init__(self, ue_id) -> None:
+        self.ue_id = ue_id
+        self.destination_scheduling:List[UserScheduling] = []
+        
+    def add_dest_user(self, dest_sched: UserScheduling):
+        self.destination_scheduling.append(dest_sched) 
+
+    def to_dict_c(self):
+        return{
+            "source_id": self.ue_id,
+            "destScheduling" : [_destSched.to_dict_c() for _destSched in self.destination_scheduling]
+            }
+    

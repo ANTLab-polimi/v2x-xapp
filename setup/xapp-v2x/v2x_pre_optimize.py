@@ -12,13 +12,16 @@ from more_itertools import locate
 # to provide the necessary information
 
 class UserPreoptimization:
-    def __init__(self, ue_id: int = -1, head_of_line_packet_delay: List[Tuple[int, float]]=[], 
+    BUFFER_SIZE_INDEX = 5
+    def __init__(self, ue_id: int = -1, head_of_line_packet_delay: List[Tuple[int, int, float, float, int, int]]=[], 
                  position_x: float = None, position_y: float = None,
                  needed_resources: int = -1, 
                  goodnes_table_of_resources:np.ndarray=None) -> None:
         self.ue_id:int=ue_id
-        self.head_of_line_packet_delay:List[Tuple[int, float, float]]=head_of_line_packet_delay 
-        # the head of line delay of all packets (packet id & head of line delay, max delay for the packet)
+        # head of line packet: source id, dest id, lower Interval (serve as id in the group of interval),
+        # reservation period, number of packets, buffer size
+        self.head_of_line_packet_delay:List[Tuple[int, int, float, float, int, int]]=head_of_line_packet_delay 
+        # the head of line delay of all packets (packet interval id & head of line delay, max delay for the packet)
         self.position_x:float=position_x
         self.position_y:float=position_y
         self.needed_resources:int = needed_resources # the number of resources needed by this user in rbs or throughput
@@ -28,32 +31,46 @@ class UserPreoptimization:
     def set_goodness_table(self, goodness_table: np.ndarray):
         self.goodnes_table_of_resources = goodness_table
 
-    def _get_packet_ids_in_head_of_line(self)->List[int]:
-        return [_tuple[0] for _tuple in self.head_of_line_packet_delay]
-
-
     def update_user_preopt_data(self, data: MillicarUeSingleReport):
         # updating the user preoptimization data
         # check if there are new head of line packet delay
         self.position_x = data.position_x
         self.position_y = data.position_y
-        # add the packet head of line packet dely
-        # _head_of_line_packet_ids = self._get_packet_ids_in_head_of_line()
+        # referring to a single user we see the packet delays for the destination of reference
+        # source_ue_id = data.user_packet_delays.ue_id
+        # whenever new report comes we update entirely the interval data
+        self.head_of_line_packet_delay = []
+        for _con in data.user_packet_delays.all_connections_delays:
+            for _delay_intervals in _con.delayIntervals:
+                _interval_group_id = _delay_intervals.lowerInterval
+                self.head_of_line_packet_delay.append(
+                    (self.ue_id, _con.ue_id, _interval_group_id, 
+                     _delay_intervals.reservationPeriod, 
+                     _delay_intervals.numberOfPackets,
+                     _delay_intervals.bufferSize)
+                )
 
     
-class V2XPreoptimize:
+class V2XPreScheduling:
     def __init__(self) -> None:
         self._single_user_preopt_list:List[UserPreoptimization]=[]
+        self._is_data_updated = False
+
+    def is_data_updated(self)->bool:
+        return  self._is_data_updated
 
     def can_perform_optimization(self) -> bool:
+        return True
         # we only perform optimization when we have full buffer
-        return self._measurements_queue.full()
+        # return self._measurements_queue.full()
 
+    # update the ddata whenever new report has been received
+    # set _is_data_updated as true
     def _update_preoptimization_data(self, ue_id: int=-1, single_report:MillicarUeSingleReport = None):
         _ue_preopt_item = self._get_user_preopt(ue_id)
         if _ue_preopt_item is None:
             # user does not exist, thus we need to insert it
-            _new_ue_preopt_item = UserPreoptimization()
+            _new_ue_preopt_item = UserPreoptimization(ue_id=ue_id)
             self._single_user_preopt_list.append(_new_ue_preopt_item)
             self._single_user_preopt_list[-1].update_user_preopt_data(single_report)
         else:
@@ -61,10 +78,19 @@ class V2XPreoptimize:
 
     def update_reports(self, reports: List[MillicarUeSingleReport]):
         # iterate over the reports an update the data
+        self._is_data_updated = True
         for _report in reports:
-            _ue_id =_report.ue_id
             # update the user report
-            self._update_preoptimization_data(_ue_id, _report)
+            self._update_preoptimization_data(_report.ue_id, _report)
+
+    # get 
+    def get_all_users_buffer_status(self) -> List[Tuple[int, int, float, float, int, int]]:
+        _all_users_buffer_data: List[Tuple[int, int, float, float, int, int]]= [] 
+        for _preopt_list in self._single_user_preopt_list:
+            _all_users_buffer_data.extend(_preopt_list.head_of_line_packet_delay)
+        self._is_data_updated = False
+        return _all_users_buffer_data
+            
 
     # get single user Preopt class instance
     def _get_user_preopt(self, ue_id: int=-1) -> UserPreoptimization:
@@ -106,30 +132,6 @@ class V2XPreoptimize:
 
         return distance_matrix, _all_ue_ids
         
-    # def add_user_preopt(self, _user_preopt: UserPreoptimization):
-    #     # check if user exist in the list
-    #     _user_preopt_list = list(filter(lambda _user_preopt_single: _user_preopt_single.ue_id == _user_preopt.ue_id, self._single_user_preopt_list))
-    #     if len(_user_preopt_list)>0:
-    #         # if user exists, then just update it's values
-    #         _user_preopt_list[0] = _user_preopt
-    #     else:
-    #         self._single_user_preopt_list.append(_user_preopt)
-    # def set_goodness_factor_table_for_user(self, ue_id:int, goodnes_table_of_resources: np.ndarray):
-    #     _ue_preopt_item = self._get_user_preopt(ue_id)
-    #     if _ue_preopt_item is None:
-    #         return 0
-    #     else:
-    #         _ue_preopt_item.set_goodness_table(goodnes_table_of_resources)
-    #         return 1
-    # get head of line delays for user with ue id
-    # def get_user_head_of_line_delays(self, ue_id:int):
-    #     _ue_id_item = self._get_user_preopt(ue_id)
-    #     if _ue_id_item is None:
-    #         return []
-    #     else:
-    #         return _ue_id_item.head_of_line_packet_delay
-        
-
 
 if __name__ == '__main__':
     pass

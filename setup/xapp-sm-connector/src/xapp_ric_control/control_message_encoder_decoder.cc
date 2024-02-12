@@ -25,6 +25,7 @@
 #include "V2X-Scheduling-Item.h"
 #include "V2X-Single-User-report.h"
 #include "V2X-Scheduling-User.h"
+#include "V2X-Scheduling-Source.h"
 // }
 
 #include "tinyxml2.h"
@@ -493,7 +494,7 @@ sctp_buffer_t* generate_e2ap_encode_handover_control_message_plmn(uint16_t* ue_i
 }
  
 
-sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot_alloc_t* user_alloc, size_t size, char* plmnId){
+sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_allocations* source_alloc_it, size_t sourceUsersSize, char* plmnId){
     
     std::string plmn(plmnId);
 
@@ -508,59 +509,69 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot
 
     v2XSchedulingAllUsersListPlmn->v2XSchedulingAllUsersList = v2xSchedulingAllUsersList;
 
-    // size = 0;
-    for(int _ind = 0; _ind<size; ++_ind){
+    for(int _ind = 0; _ind<sourceUsersSize; ++_ind){
         // this is to shift the pointer to the next object
-        user_alloc+=_ind;
-        // test print the ue id
-        // goint to a single user 
-        // create single user scheduling object
-        V2X_Scheduling_User_t* v2XSingleUserScheduling = (V2X_Scheduling_User_t *) calloc(1, sizeof(V2X_Scheduling_User_t));
-        // adding v2 node id
-        v2XSingleUserScheduling->v2xNodeId = (long) user_alloc->ue_id;
-        // create the scheduling list for the single user
-        uint32_t userNumOfAllocation = user_alloc->userAllocationSize;
-        auto userAllocVecIt = user_alloc->userAllocation;
-        for (uint32_t userAllocInd = 0; userAllocInd< userNumOfAllocation; ++userAllocInd){
-            userAllocVecIt = userAllocVecIt+userAllocInd;
-        // for (auto userAllocVecIt = user_alloc->userAllocation.begin(); userAllocVecIt!=user_alloc->userAllocation.end(); ++userAllocVecIt){
-            V2X_Scheduling_Item_t* schedulingItem = (V2X_Scheduling_Item_t *) calloc(1, sizeof(V2X_Scheduling_Item_t));
-            // create std::vector of rlc pdu
-            std::vector<ns3::SlRlcPduInfo> rlRlcPduInfoVec;
-            auto slRlcPduInfoIt = userAllocVecIt->slRlcPduInfo;
-            for (int slRlcPduInd = 0; slRlcPduInd<userAllocVecIt->slRlcPduInfoSize; ++slRlcPduInd){
-                // auto slRlcPduInfoIt = userAllocVecIt->slRlcPduInfo + slRlcPduInd;
-                slRlcPduInfoIt = slRlcPduInfoIt + slRlcPduInd;
-                rlRlcPduInfoVec.push_back(ns3::SlRlcPduInfo(slRlcPduInfoIt->lcid, 
-                                        slRlcPduInfoIt->size));
-            }
-            ns3::NrSlSlotAlloc nrSlSlotAlloc = ns3::NrSlSlotAlloc(
-                userAllocVecIt->m_frameNum, userAllocVecIt->m_subframeNum, userAllocVecIt->m_slotNum, userAllocVecIt->m_numerology, 
-                userAllocVecIt->dstL2Id, userAllocVecIt->ndi, userAllocVecIt->rv, userAllocVecIt->priority, 
-                rlRlcPduInfoVec,
-                userAllocVecIt->mcs, userAllocVecIt->numSlPscchRbs, userAllocVecIt->slPscchSymStart, userAllocVecIt->slPscchSymLength, 
-                userAllocVecIt->slPsschSymStart, userAllocVecIt->slPsschSymLength, userAllocVecIt->slPsschSubChStart, 
-                userAllocVecIt->slPsschSubChLength, userAllocVecIt->maxNumPerReserve, userAllocVecIt->txSci1A, userAllocVecIt->slotNumInd
+        auto source_alloc = source_alloc_it + _ind;
+        // in the structure there is the scheduling of single user
+        V2X_Scheduling_Source_t* v2XSourceUserScheduling = (V2X_Scheduling_Source_t *) calloc(1, sizeof(V2X_Scheduling_Source_t));
+        v2XSourceUserScheduling->v2xNodeId = (long) source_alloc->source_ue_id;
+        uint32_t sourceNumDestination = source_alloc->destinationAllocationsSize;
+        
+        for (int destInd = 0; destInd< sourceNumDestination; ++destInd){
+            // goint to a single user 
+            auto user_alloc = source_alloc->destinationAllocations + destInd;
+            // create single user scheduling object
+            V2X_Scheduling_User_t* v2XSingleUserScheduling = (V2X_Scheduling_User_t *) calloc(1, sizeof(V2X_Scheduling_User_t));
+            // adding v2 node id
+            v2XSingleUserScheduling->v2xNodeId = (long) user_alloc->ue_id;
+            v2XSingleUserScheduling->cReselectionCounter = (long) user_alloc->cReselCounter;
+            v2XSingleUserScheduling->slResourceReselectionCounter = (long) user_alloc->slResoReselCounter;
+            v2XSingleUserScheduling->prevSlResoReselCounter = (long) user_alloc->prevSlResoReselCounter;
+            v2XSingleUserScheduling->nrSlHarqId = (long) user_alloc->nrSlHarqId;
+            v2XSingleUserScheduling->nSelected = (long) user_alloc->nSelected;
+            v2XSingleUserScheduling->tbTxCounter = (long) user_alloc->tbTxCounter;
+            // create the scheduling list for the single user
+            uint32_t userNumOfAllocation = user_alloc->userAllocationSize;
+            for (int userAllocInd = 0; userAllocInd< userNumOfAllocation; ++userAllocInd){
+                auto userAllocVecIt = user_alloc->userAllocation+userAllocInd;
+                V2X_Scheduling_Item_t* schedulingItem = (V2X_Scheduling_Item_t *) calloc(1, sizeof(V2X_Scheduling_Item_t));
+                // create std::vector of rlc pdu
+                std::vector<ns3::SlRlcPduInfo> rlRlcPduInfoVec;
+                for (int slRlcPduInd = 0; slRlcPduInd<userAllocVecIt->slRlcPduInfoSize; ++slRlcPduInd){
+                    auto slRlcPduInfoIt = userAllocVecIt->slRlcPduInfo + slRlcPduInd;
+                    slRlcPduInfoIt = slRlcPduInfoIt + slRlcPduInd;
+                    rlRlcPduInfoVec.push_back(ns3::SlRlcPduInfo(slRlcPduInfoIt->lcid, 
+                                            slRlcPduInfoIt->size));
+                }
+                ns3::NrSlSlotAlloc nrSlSlotAlloc = ns3::NrSlSlotAlloc(
+                    userAllocVecIt->m_frameNum, userAllocVecIt->m_subframeNum, userAllocVecIt->m_slotNum, userAllocVecIt->m_numerology, 
+                    userAllocVecIt->dstL2Id, userAllocVecIt->ndi, userAllocVecIt->rv, userAllocVecIt->priority, 
+                    rlRlcPduInfoVec,
+                    userAllocVecIt->mcs, userAllocVecIt->numSlPscchRbs, userAllocVecIt->slPscchSymStart, userAllocVecIt->slPscchSymLength, 
+                    userAllocVecIt->slPsschSymStart, userAllocVecIt->slPsschSymLength, userAllocVecIt->slPsschSubChStart, 
+                    userAllocVecIt->slPsschSubChLength, userAllocVecIt->maxNumPerReserve, userAllocVecIt->txSci1A, userAllocVecIt->slotNumInd
 
-            );
-            // user buffer for the serialization
-            uint32_t nrSlotAllocBufferSize = nrSlSlotAlloc.GetSerializedSizeForE2();
-            ns3::Buffer bufferNrSlotAlloc = ns3::Buffer();
-            bufferNrSlotAlloc.AddAtStart(nrSlotAllocBufferSize);
-            nrSlSlotAlloc.SerializeForE2(bufferNrSlotAlloc.Begin());
-            uint32_t extraSizeNrSlotAlloc = 30;
-            uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
-            bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
-            extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
-            Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
-            allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
-            allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
-            memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
-            schedulingItem->nrSlotAllocBuffer = *allocBufferString;
-            ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
+                );
+                // user buffer for the serialization
+                uint32_t nrSlotAllocBufferSize = nrSlSlotAlloc.GetSerializedSizeForE2();
+                ns3::Buffer bufferNrSlotAlloc = ns3::Buffer();
+                bufferNrSlotAlloc.AddAtStart(nrSlotAllocBufferSize);
+                nrSlSlotAlloc.SerializeForE2(bufferNrSlotAlloc.Begin());
+                uint32_t extraSizeNrSlotAlloc = 30;
+                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+                bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+                extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
+                Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
+                allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
+                memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                schedulingItem->nrSlotAllocBuffer = *allocBufferString;
+                ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
+            }
+            // add this user the the list of all users
+            ASN_SEQUENCE_ADD(&v2XSourceUserScheduling->V2X_Scheduling_DestinationList.list, v2XSingleUserScheduling);
         }
-        // add this user the the list of all users
-        ASN_SEQUENCE_ADD(&v2xSchedulingAllUsersList->list, v2XSingleUserScheduling);
+        ASN_SEQUENCE_ADD(&v2xSchedulingAllUsersList->list, v2XSourceUserScheduling);
     }
     
     // xer_fprint(stdout, &asn_DEF_V2X_Scheduling_All_UsersPlmn, v2XSchedulingAllUsersListPlmn);
@@ -569,6 +580,7 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_user_nr_sl_slot
     rcControlMessage->present = E2SM_RC_ControlMessage_PR_v2xSchedulingMessage_Format;
     rcControlMessage->choice.v2xSchedulingMessage_Format = v2XSchedulingAllUsersListPlmn;
 
+    // xer_fprint(stdout, &asn_DEF_E2SM_RC_ControlMessage, rcControlMessage);
     // afterwords we have to generate the data part
 
     sctp_buffer_t* data = (sctp_buffer_t *) calloc(1, sizeof(sctp_buffer_t));

@@ -25,6 +25,7 @@ typedef struct V2XPacketDelayInterval {
 	long	upperInterval;
 	long 	numberOfPackets;
 	long	reservationPeriod;
+	long 	bufferSize;
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.
@@ -37,7 +38,7 @@ typedef struct V2XPacketDelayInterval {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2XPacketDelayInterval;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2XPacketDelayInterval_specs_1;
-extern asn_TYPE_member_t asn_MBR_V2XPacketDelayInterval_1[4];
+extern asn_TYPE_member_t asn_MBR_V2XPacketDelayInterval_1[5];
 
 #ifdef __cplusplus
 }

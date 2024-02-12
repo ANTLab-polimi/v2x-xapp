@@ -65,6 +65,8 @@
         "optional": "cpp",
         "iomanip": "cpp",
         "variant": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "v2x-scheduling-source.h": "c",
+        "e2sm-rc-controlmessage-format1.h": "c"
     }
 }

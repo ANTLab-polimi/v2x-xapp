@@ -20,11 +20,13 @@ extern "C" {
 #endif
 
 /* Forward declarations */
-struct V2X_Scheduling_User;
+// struct V2X_Scheduling_User;
+struct V2X_Scheduling_Source;
 
 /* RICaction-NotAdmitted-List */
 typedef struct V2X_Scheduling_All_Users {
-	A_SEQUENCE_OF(struct V2X_Scheduling_User) list;
+	// A_SEQUENCE_OF(struct V2X_Scheduling_User) list;
+	A_SEQUENCE_OF(struct V2X_Scheduling_Source) list;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;

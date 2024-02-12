@@ -4,8 +4,9 @@ from ctypes import c_long, c_size_t, c_int, c_uint8, c_char_p, c_void_p
 from ctypes import c_int16, c_uint16, c_uint32, c_ubyte, cast
 
 from typing import Any, List
+import numpy as np
 
-from v2x_ric_message_format import UserScheduling, SingleScheduling, SlRlcPduInfo
+from v2x_ric_message_format import SourceUserScheduling, UserScheduling, SingleScheduling, SlRlcPduInfo
 
 class BaseStructure(ctypes.Structure):
 
@@ -124,14 +125,28 @@ class v2x_nr_sl_slot_alloc_t(BaseStructure):
 class v2x_user_nr_sl_slot_alloc_t(BaseStructure):
     _fields_ = [
         ("ue_id", c_uint16),
+        ("cReselCounter", c_uint16),
+        ("slResoReselCounter", c_uint8),
+        ("prevSlResoReselCounter", c_uint8),
+        ("nrSlHarqId", c_uint8),
+        ("nSelected", c_uint8),
+        ("tbTxCounter", c_uint8),
         ("userSchedulingVectorSize", c_uint32),
         ("userScheduling", POINTER(v2x_nr_sl_slot_alloc_t)),# type vector with size 0
     ]
 
-    _defaults_ = { "ue_id" : 0,
+    _defaults_ = {  "ue_id" : 0,
+                    "cReselCounter": int(np.iinfo(np.uint8).max),
+                    "slResoReselCounter": int(np.iinfo(np.uint8).max),
+                    "prevSlResoReselCounter": int(np.iinfo(np.uint8).max),
+                    "nrSlHarqId": int(np.iinfo(np.uint8).max),
+                    "nSelected": 0,
+                    "tbTxCounter": 0,
                  }
 
     def __init__(self, **kwargs):
+        # print ("User scheduling")
+        # print(kwargs)
         _dict_user_scheduling = kwargs['userScheduling']
         userSchedulingArrayType= v2x_nr_sl_slot_alloc_t*len(_dict_user_scheduling)
         userSchedulingArray = userSchedulingArrayType()
@@ -144,6 +159,31 @@ class v2x_user_nr_sl_slot_alloc_t(BaseStructure):
         kwargs.update({'userScheduling': pointer_to_first_element, "userSchedulingVectorSize": len(_dict_user_scheduling)})
         super().__init__(**kwargs)
 
+class v2x_source_user_nr_sl_slot_alloc_t(BaseStructure):
+    _fields_ = [
+        ("ue_id", c_uint16),
+        ("destSchedulingVectorSize", c_uint32),
+        ("destScheduling", POINTER(v2x_user_nr_sl_slot_alloc_t)),# type vector with size 0
+    ]
+
+    _defaults_ = { "ue_id" : 0,
+                 }
+
+    def __init__(self, **kwargs):
+        # print ("Dest scheduling")
+        # print(kwargs)
+        _dict_user_scheduling = kwargs['destScheduling']
+        destUserSchedulingArrayType= v2x_user_nr_sl_slot_alloc_t*len(_dict_user_scheduling)
+        destUserSchedulingArray = destUserSchedulingArrayType()
+        if len(_dict_user_scheduling)>0:
+            # update values
+            for i in range(len(_dict_user_scheduling)):
+                destUserSchedulingArray[i] = v2x_user_nr_sl_slot_alloc_t(**_dict_user_scheduling[i])
+
+        pointer_to_first_element = cast(destUserSchedulingArray, POINTER(v2x_user_nr_sl_slot_alloc_t))# store the pointer of vector
+        kwargs.update({'destScheduling': pointer_to_first_element, "destSchedulingVectorSize": len(_dict_user_scheduling)})
+        super().__init__(**kwargs)
+
 class RicControlMessageEncoder:
     def __init__(self):
         self._asn1_c_lib = ctypes.CDLL("libe2sim.so", mode=ctypes.RTLD_GLOBAL)
@@ -154,25 +194,28 @@ class RicControlMessageEncoder:
         func.argtypes = argtypes
         return func
     
-    def encode_scheduling_plmn(self, v2x_scheduling_all_users: List[UserScheduling], plmnId:str):
+    def encode_scheduling_plmn(self, v2x_scheduling_all_users: List[SourceUserScheduling], plmnId:str):
         _asn1_generate_v2x_scheduling_msg = self._wrap_asn1_function(
         'generate_e2ap_scheduling_control_message_plmn', POINTER(buffer_lengtht_t), 
-        [POINTER(v2x_user_nr_sl_slot_alloc_t), c_size_t, c_char_p]) 
+        [POINTER(v2x_source_user_nr_sl_slot_alloc_t), c_size_t, c_char_p]) 
 
         # creating the slot alloc object
 
         _length = len(v2x_scheduling_all_users)
-        v2x_all_users_allocation_vector_type = v2x_user_nr_sl_slot_alloc_t*_length
+        v2x_all_users_allocation_vector_type = v2x_source_user_nr_sl_slot_alloc_t*_length
         v2x_all_users_allocation_vector = v2x_all_users_allocation_vector_type()
+        # single destination 
+
+
         for _ind in range(_length):
-            # generate single user allocation
-            v2x_all_users_allocation_vector[_ind] = v2x_user_nr_sl_slot_alloc_t(**v2x_scheduling_all_users[_ind].to_dict_c())
+            # generate single source user allocation
+            v2x_all_users_allocation_vector[_ind] = v2x_source_user_nr_sl_slot_alloc_t(**v2x_scheduling_all_users[_ind].to_dict_c())
 
         plmnId_encoded = plmnId.encode("utf-8")
         plmnId_c = create_string_buffer(plmnId_encoded)
         # print("Encoding data in the c class")
         # cast array to pointer of the first element
-        pointer_to_first_element = cast(v2x_all_users_allocation_vector, POINTER(v2x_user_nr_sl_slot_alloc_t))# store the pointer of vector
+        pointer_to_first_element = cast(v2x_all_users_allocation_vector, POINTER(v2x_source_user_nr_sl_slot_alloc_t))# store the pointer of vector
         msg: buffer_lengtht_t = _asn1_generate_v2x_scheduling_msg(pointer_to_first_element, _length, plmnId_c)
         _buffer_res = ctypes.cast(msg.contents.buffer, ctypes.POINTER(ctypes.c_ubyte * msg.contents.length))
 
@@ -306,21 +349,53 @@ class RicControlMessageEncoder:
 
 # _test_data_3 =  b"\x00\x05@\x83\xd3\x00\x00\x08\x00\x1d\x00\x05\x00\x00\x18\x00\x00\x00\x05\x00\x02\x00\xc8\x00\x0f\x00\x01\x01\x00\x1b\x00\x02\x00\x01\x00\x1c\x00\x01\x00\x00\x19\x00\x13\x12\x00\x00\x00\x01\x87\x94\xa6\xdbD\x00111P2\x00\x00\x00\x00\x1a\x00\x83\x8c\x83\x8a0\x80\x00\x00`11132\x00\x00\x00\x00\x8b\x00\x8b\x02111\x00\x00`\x01\x80\x00\x00\x041112\x07\x00\xc0TB.TotNbrDl.1\x00\x02\x02\x90\x01\x10TB.TotNbrDlInitial\x00\x02\x022\x00\xc0RRU.PrbUsedDl\x00\x01Y\x01\x10TB.ErrTotalNbrDl.1\x00\x01^\x01\xd0QosFlow.PdcpPduVolumeDL_Filter\x00\x03\x02hZ\x01\x10DRB.BufferSize.Qos\x00\x03\x04'\x03\x01\x10DRB.MeanActiveUeDl\x00\x01\x04\x00\x03@\x0500008\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xad\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x85\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x02,\xc7\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x18\x01`DRB.BufferSize.Qos.UEID\x00\x03\x01o\x15\x00\xf0DRB.UEThpDl.UEID \x00@\x0500009\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xa1\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x8f\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x02\x199\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x16\x01`DRB.BufferSize.Qos.UEID\x00\x03\x01{\x9d\x00\xf0DRB.UEThpDl.UEID \x00@\x0500001\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\x9e\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x92\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x03\x01J \x01\x10RRU.PrbUsedDl.UEID\x00\x01\x15\x01`DRB.BufferSize.Qos.UEID\x00\x02`\x1b\x00\xf0DRB.UEThpDl.UEID \x00@\x0500012\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xa4\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x8c\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x03\x00\xd8:\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x16\x01`DRB.BufferSize.Qos.UEID\x00\x03\x00\xdc6\x00\xf0DRB.UEThpDl.UEID \x00\x00\x14\x00\x05\x04cpid"
 
-if __name__ == '__main__':
-    _encoder = RicControlMessageEncoder()
-    print("decoding data")
+def generate_sched_data() -> List[SourceUserScheduling]:
+    v2x_scheduling_source_users: List[SourceUserScheduling] = []
     v2x_scheduling_all_users: List[UserScheduling] = []
-    v2x_scheduling_all_users.append(UserScheduling(ue_id=12))
     v2x_scheduling_all_users.append(UserScheduling(ue_id=11))
+    v2x_scheduling_all_users.append(UserScheduling(ue_id=12))
+    v2x_scheduling_all_users.append(UserScheduling(ue_id=13))
+    v2x_scheduling_all_users.append(UserScheduling(ue_id=14))
     # v2x_scheduling_all_users[0].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=1, slRlcPduInfo=[]))
     # v2x_scheduling_all_users[0].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=2, slRlcPduInfo=[]))
     v2x_scheduling_all_users[0].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=1, slRlcPduInfo=[SlRlcPduInfo(1, 1), SlRlcPduInfo(10, 10)]))
     v2x_scheduling_all_users[0].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=2, slRlcPduInfo=[SlRlcPduInfo(2, 2), SlRlcPduInfo(20, 20)]))
     v2x_scheduling_all_users[1].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=5, slRlcPduInfo=[SlRlcPduInfo(5, 5), SlRlcPduInfo(50, 50)]))
     v2x_scheduling_all_users[1].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=6, slRlcPduInfo=[SlRlcPduInfo(6, 6), SlRlcPduInfo(60, 60)]))
+    v2x_scheduling_all_users[2].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=5, slRlcPduInfo=[SlRlcPduInfo(5, 5), SlRlcPduInfo(50, 50)]))
+    v2x_scheduling_all_users[2].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=6, slRlcPduInfo=[SlRlcPduInfo(6, 6), SlRlcPduInfo(60, 60)]))
+    v2x_scheduling_all_users[3].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=5, slRlcPduInfo=[SlRlcPduInfo(5, 5), SlRlcPduInfo(50, 50)]))
+    v2x_scheduling_all_users[3].add_single_scheduling(single_sched=SingleScheduling(m_frameNum=6, slRlcPduInfo=[SlRlcPduInfo(6, 6), SlRlcPduInfo(60, 60)]))
+
+    v2x_scheduling_source_users.append((SourceUserScheduling(ue_id=9)))
+    v2x_scheduling_source_users.append((SourceUserScheduling(ue_id=10)))
+    v2x_scheduling_source_users.append((SourceUserScheduling(ue_id=11)))
+    v2x_scheduling_source_users.append((SourceUserScheduling(ue_id=12)))
+    v2x_scheduling_source_users[0].add_dest_user(v2x_scheduling_all_users[0])
+    v2x_scheduling_source_users[0].add_dest_user(v2x_scheduling_all_users[1])
+    v2x_scheduling_source_users[1].add_dest_user(v2x_scheduling_all_users[0])
+    v2x_scheduling_source_users[1].add_dest_user(v2x_scheduling_all_users[1])
+    v2x_scheduling_source_users[2].add_dest_user(v2x_scheduling_all_users[0])
+    v2x_scheduling_source_users[2].add_dest_user(v2x_scheduling_all_users[1])
+    v2x_scheduling_source_users[3].add_dest_user(v2x_scheduling_all_users[0])
+    v2x_scheduling_source_users[3].add_dest_user(v2x_scheduling_all_users[1])
+    v2x_scheduling_source_users[0].add_dest_user(v2x_scheduling_all_users[0+2])
+    v2x_scheduling_source_users[0].add_dest_user(v2x_scheduling_all_users[1+2])
+    v2x_scheduling_source_users[1].add_dest_user(v2x_scheduling_all_users[0+2])
+    v2x_scheduling_source_users[1].add_dest_user(v2x_scheduling_all_users[1+2])
+    v2x_scheduling_source_users[2].add_dest_user(v2x_scheduling_all_users[0+2])
+    v2x_scheduling_source_users[2].add_dest_user(v2x_scheduling_all_users[1+2])
+    v2x_scheduling_source_users[3].add_dest_user(v2x_scheduling_all_users[0+2])
+    v2x_scheduling_source_users[3].add_dest_user(v2x_scheduling_all_users[1+2])
+    return v2x_scheduling_source_users
 
 
-    _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_all_users, "111")
-    print(_data_bytes)
+if __name__ == '__main__':
+    _encoder = RicControlMessageEncoder()
+    print("decoding data")
+    v2x_scheduling_source_users = generate_sched_data()
+
+    _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_source_users, "111")
+    print("Encoded data length " + str(_data_length))
 
     print("Ended")

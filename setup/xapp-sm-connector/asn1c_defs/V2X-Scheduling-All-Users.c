@@ -6,22 +6,34 @@
  */
 
 #include "V2X-Scheduling-All-Users.h"
-#include "V2X-Scheduling-User.h"
+// #include "V2X-Scheduling-User.h"
+#include "V2X-Scheduling-Source.h"
 
 asn_per_constraints_t asn_PER_type_V2X_Scheduling_All_Users_constr_1 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(0..16)) */,
 	0, 0	/* No PER value map */
 };
+// asn_TYPE_member_t asn_MBR_V2X_Scheduling_All_Users_1[] = {
+// 	{ ATF_POINTER, 0, 0,
+// 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
+// 		0,
+// 		&asn_DEF_V2X_Scheduling_User,
+// 		0,
+// 		{ 0, 0, 0 },
+// 		0, 0, /* No default value */
+// 		"v2X-Scheduling-User"
+// 		},
+// };
 asn_TYPE_member_t asn_MBR_V2X_Scheduling_All_Users_1[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
-		&asn_DEF_V2X_Scheduling_User,
+		&asn_DEF_V2X_Scheduling_Source,
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */
-		"v2X-Scheduling-User"
+		"v2X-Scheduling-Source"
 		},
 };
 static const ber_tlv_tag_t asn_DEF_V2X_Scheduling_All_Users_tags_1[] = {
