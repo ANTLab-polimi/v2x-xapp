@@ -61,7 +61,7 @@ def write_assignment_data_to_file(plmn:str, allImsi: np.ndarray, real_assignment
         file.write(str(time.time()) + "|" + plmn + "|" + _all_imsi_str  + "|" +_assign_str + "|" +_optimized_str+ "|" + _mcs_table_str + "|" + _assignment_table +"\r\n")
 
 def _schedule_data_and_save(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_obj: V2XFormulation, 
-                            frame: int = 0, subframe: int = 0, slot: int = 0):
+                            frame: int = 0, subframe: int = 0, slot: int = 0)->List[SourceUserScheduling]:
     # print("Here we optimize the scenarion and return back the data")
     # _plmn = int(data[transform._JSON_PLMN])
     # set the current optimization branch to being optimized
@@ -75,6 +75,8 @@ def _schedule_data(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_
 
     # optimization afterwards which shall return the list of scheduled data
     v2x_source_scheduling_users: List[SourceUserScheduling] = v2x_scheduling_obj.schedule_slot(frame, subframe, slot)
+    # store data in file to compare with data in ns3
+    
 
     return v2x_source_scheduling_users
 
@@ -121,7 +123,6 @@ def create_or_reset_shareable_memory():
     except FileNotFoundError:
         # the ric commands can be long since it contains scheduling info
         _shared_list_ric_command = shm.ShareableList([" "*int(1e6)]*50, name="ric_commands")
-    
     try:
         # we see to search for it
         _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
@@ -175,26 +176,41 @@ def _check_optimization_to_be_executed()->List[dict]:
         print("")
     return _l_to_be_optimized
 
-def _scheduling_main_func(queue:mp.Queue, v2x_preopt_obj: V2XFormulation, 
-                          v2x_scheduling_obj: V2XPreScheduling, plmn: str = "111"):
+def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation, 
+                          v2x_preopt_obj: V2XPreScheduling, plmn: str = "111"):
     _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
-    _shared_list_data_updated = shm.ShareableList(name="data_updated")
+    # _shared_list_data_updated = shm.ShareableList(name="data_updated")
     _shared_list_ric_command = shm.ShareableList(name="ric_commands")
-    _shared_list_data = shm.ShareableList(name="data")
+    # _shared_list_data = shm.ShareableList(name="data")
     frame = 0
     subframe = 0
+    _plmn = plmn
+    _frame_schedule_until = frame + 10
+    _subframe_schedule_until = subframe + 10
     slot = 0
+    _data: dict = {}
+    # if we get new data we update the ue reports in the preopt object
+    # the updated data shall be used in the optmization object afterwards on the new slot 
+    # otherwise we schedule the next coming slot until we reach the interval
+    # the parameter _block_queue shall block proceding until new data is available in the buffer
+    # this will be useful in two scenarios:
+    # 1. at the beginning of the simulation when it will wait for data to start the implented logic
+    # therefore it will stop executing the loop infinitely
+    # 2. When the scheduling for a given interval has stopped, therefore there is no need to proceed
+    # and run the loop, rather wait for new data coming in the queue
+
+    _block_queue = True
+    _is_scheduled_needed = False
     while True:
-        _data = queue.get(block=False)
-        print("Data typy coming from queue")
-        print(_data)
-        print(type(_data))
-        print("Preopt obj: ")
-        print(v2x_preopt_obj.plmn)
-        return
-        # here are the data coming from quueu
-        # we update the v2x scheduling and sync to the new frame
-        if _data is not None:
+        # if not queue.empty():
+        if _block_queue:
+            _data = queue.get()
+            _block_queue = False
+            print("Data typy coming from queue")
+            print(_data)
+            # here are the data coming from quueu
+            # we update the v2x scheduling and sync to the new frame
+            # if _data is not None:
             
             _plmn = _data[transform._JSON_PLMN]
             _plmn_ind = int(_plmn) - 111
@@ -206,44 +222,68 @@ def _scheduling_main_func(queue:mp.Queue, v2x_preopt_obj: V2XFormulation,
             subframe = (subframe+1)%10 # we shift to the next subframe index
             _added_frame = 1 if subframe == 0 else 0 # means it has moved to the next frame
             frame+=_added_frame # if subframe moved to the new frame (i.e. subframe == 0) we add 1 else we add 0
+            _frame_schedule_until = frame + 10
+            _subframe_schedule_until = subframe + 10
             # slot = 0 # we have already set slot = 0, this it is ok 
             # we get the reports send and update the data in the preoptimizer
             _buffer_status_reports = _data['buffer_status']
             # construct the object from the buffer 
             _xml_tranform = transform.XmlToDictDataTransform(None, _plmn, _buffer_status_reports)
             v2x_preopt_obj.update_reports(_xml_tranform.all_users_reports)
+            _is_scheduled_needed = True
         else:
-
+            # when there is new data we block the queue to get new data
+            if not queue.empty():
+                _block_queue = True
+        if _is_scheduled_needed:
+            # id data is available
             # here we schedule for the next slot until we reach the limit of 1 frame or 10 subframes
             
             print("Q size in get " + str((plmn, queue.qsize())))
-            v2x_source_scheduling_all_users, _plmn = _schedule_data_and_save(_data, 
+            v2x_source_scheduling_all_users = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
+            # write data to the file
+            for _source_sched in v2x_source_scheduling_all_users:
+                _source_sched.write_data_to_file(plmn=_plmn)
             # insert data in the shareable list
             _optimized_dict = {
                 transform._JSON_PLMN: _plmn,
                 _JSON_SOURCE_SCHEDULING: [_single_source_sched.to_dict_c() for _single_source_sched in v2x_source_scheduling_all_users]
             }
             # inser the ric command to the list
-            # here instead of mere adding it, we can add 
-            _shared_list_ric_command[_plmn_ind] = str(_optimized_dict)
+            # here instead of mere adding it, we can append the new command 
+            _shared_list_ric_command[_plmn_ind] += str(_optimized_dict)
             # remove the state of being optimized
             _shared_list_being_optimized[_plmn_ind] = False
             slot = (slot+1)%(pow(2,_NUMEROLOGY))
             # in case the slot goes again to 0, it means a new subframe has
             # started, thus we add by 1
             subframe = (subframe + (1 if slot==0 else 0))%10
-            # the same logic we deploy for the frame
+            # the same logic we deploy for the frame 
             frame = frame + (1 if ((subframe == 0) & (slot==0)) else 0)
 
+            # check if all the slot in the needed has been scheduled
+            # if so we set _block_queue to true to wait for new data to save 
+            # cpu usage
+            if (_frame_schedule_until == frame) & (_subframe_schedule_until == subframe):
+                _block_queue = True
+                _is_scheduled_needed = False
+
+def recreate_report_files():
+    with open("/home/traces/ric_messages.txt", 'w') as f:
+        _fields_name_str = SourceUserScheduling.get_field_names()
+        f.write(_fields_name_str)
 
 def handle_optimization_thread():
     # in total we define 50 queues for 50 simulation instances at max we can run in a server
     # the queues shall hold the data of _shared_list_data shareble list and new data coming
     # and inserted in the _all_queues shall trigger the _scheduling_main_func to trigger 
     # its execution
-    _all_queues = [mp.Queue() for _ in range(50)]
+    # recreate the report files
+    recreate_report_files()
+
+    _all_queues = [mp.Queue() for _ in range(2)]
     _all_preopt_objs = [V2XPreScheduling() for _ in range(len(_all_queues))]
     _all_sched_objs = [V2XFormulation(_all_preopt_objs[_ind], str(_ind + 111)) for _ind in range(len(_all_queues))]
     
@@ -297,10 +337,14 @@ def main():
         pickle_out = open('/home/traces/ue_reports_' +str(_plmn)+ '.pickle', 'wb')
         pickle_out.close()
 
-    pickle_out = open('/home/traces/relay_links_reports.pickle', 'wb')
-    pickle_out.close()
-    pickle_out = open('/home/traces/sent_relays_reports.pickle', 'wb')
-    pickle_out.close()
+    # pickle_out = open('/home/traces/relay_links_reports.pickle', 'wb')
+    # pickle_out.close()
+    # pickle_out = open('/home/traces/sent_relays_reports.pickle', 'wb')
+    # pickle_out.close()
+
+    # # create the deamon thread for message handling
+    print("Creating the shareable memory")
+    logger.debug("Creating the shareable memory")
 
     create_or_reset_shareable_memory()
     create_or_reset_shareable_memory()
@@ -308,8 +352,10 @@ def main():
     _shared_list_data_updated = shm.ShareableList(name="data_updated")
 
     # # create the deamon thread for message handling
-    # _msg_handling_thread = Thread(name="optimization", target=handle_optimization_thread, daemon=True)
-    # _msg_handling_thread.start()
+    print("Starting the handler of optimization threads")
+    logger.debug("Starting the handler")
+    _msg_handling_thread = Thread(name="optimization", target=handle_optimization_thread, daemon=True)
+    _msg_handling_thread.start()
 
     control_sck = open_control_socket(4200)
 

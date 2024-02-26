@@ -63,7 +63,7 @@ remove_container ${CONTAINER_NAME}
 #     --log-opt max-file=5 \
 
 # replace parameters, recompile code and restart container
-$SUDO docker run -d -it --entrypoint ${ENTRYPOINT} --network ric --ip ${XAPP_IP} \
+$SUDO docker run -d -it --entrypoint ${ENTRYPOINT} --network ric --ip ${XAPP_IP} --shm-size 512m\
     -e DBAAS_SERVICE_HOST=$DBAAS_IP -e DBAAS_SERVICE_PORT=$DBAAS_PORT --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest
 # -v ~/workspace/docker_ef:/home/traces \
 # $SUDO docker run -d -it --entrypoint ${ENTRYPOINT} --network=ric --ip ${XAPP_IP} -p :37422:37422/sctp\

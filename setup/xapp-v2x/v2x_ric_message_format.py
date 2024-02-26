@@ -1,26 +1,28 @@
 from typing import List
 import numpy as np
+import time
+# import os
 
-_V2X_FRAMENUM = "FRAMENUM"
-_V2X_SUBFRAMENUM = "SUBFRAMENUM"
-_V2X_SLOTNUM = "SLOTNUM"
-_V2X_NUMEROLOGY = "NUMEROLOGY"
-_V2X_DSTL2ID = "DSTL2ID"
-_V2X_NDI = "NDI"
-_V2X_RV = "RV"
-_V2X_PRIORITY = "PRIORITY"
-_V2X_SLRLCPDUINFO = "SLRLCPDUINFO"
-_V2X_MCS = "MCS"
-_V2X_NUMSLPSCCHRBS = "NUMSLPSCCHRBS"
-_V2X_SLPSCCHSYMSTART = "SLPSCCHSYMSTART"
-_V2X_SLPSCCHSYMLENGTH = "SLPSCCHSYMLENGTH"
-_V2X_SLPSSCHSYMSTART = "SLPSSCHSYMSTART"
-_V2X_SLPSSCHSYMLENGTH = "SLPSSCHSYMLENGTH"
-_V2X_SLPSSCHSUBCHSTART = "SLPSSCHSUBCHSTART"
-_V2X_SLPSSCHSUBCHLENGTH = "SLPSSCHSUBCHLENGTH"
-_V2X_MAXNUMPERRESERVE = "MAXNUMPERRESERVE"
-_V2X_TXSCI1A = "TXSCI1A"
-_V2X_SLOTNUMIND = "SLOTNUMIND"
+_V2X_FRAMENUM = "frameNum"
+_V2X_SUBFRAMENUM = "subframeNum"
+_V2X_SLOTNUM = "slotNum"
+_V2X_NUMEROLOGY = "numerology"
+_V2X_DSTL2ID = "dstl2id"
+_V2X_NDI = "ndi"
+_V2X_RV = "rv"
+_V2X_PRIORITY = "priority"
+_V2X_SLRLCPDUINFO = "slRlcPduInfo"
+_V2X_MCS = "mcs"
+_V2X_NUMSLPSCCHRBS = "numSlPscchRbs"
+_V2X_SLPSCCHSYMSTART = "slPscchSymStart"
+_V2X_SLPSCCHSYMLENGTH = "slPscchSymLength"
+_V2X_SLPSSCHSYMSTART = "slPsschSymStart"
+_V2X_SLPSSCHSYMLENGTH = "slPsschSymLength"
+_V2X_SLPSSCHSUBCHSTART = "slPsschSubchStart"
+_V2X_SLPSSCHSUBCHLENGTH = "slPsschSubchLength"
+_V2X_MAXNUMPERRESERVE = "maxNumPerReserve"
+_V2X_TXSCI1A = "txSci1a"
+_V2X_SLOTNUMIND = "slotNumInd"
 _V2X_UE_ID = "ue_id"
 _V2X_CRESELCOUNTER = "cReselCounter"
 _V2X_SLRESORESELCOUNTER = "slResoReselCounter"
@@ -30,7 +32,12 @@ _V2X_NSELECTED = "nSelected"
 _V2X_TBTXCOUNTER = "tbTxCounter"
 _V2X_USERALLOCATIONSIZE = "userAllocationSize"
 _V2X_USERSCHEDULING = "userScheduling"
-
+_V2X_LCID = "lcid"
+_V2X_SIZE = "size"
+_V2X_SOURCE_UE_ID = "source_ue_id"
+_V2X_SOURCE_DESTINATION_USER_SCHEDULING = "destination_scheduling"
+_V2X_PLMN = "plmn"
+_V2X_TIME = "time"
 
 
 class SlRlcPduInfo:
@@ -46,6 +53,11 @@ class SlRlcPduInfo:
             "lcid":self.lcid,
             "size": self.size
         }
+    def __str__(self) -> str:
+        return str(self.lcid) + "," + str(self.size)
+    
+    def str_var_order() -> str:
+        return  _V2X_LCID + "," + _V2X_SIZE
 
 
 class SingleScheduling:
@@ -71,7 +83,7 @@ class SingleScheduling:
         self._ndi = ndi
         self._rv = rv
         self._priority = priority
-        self._slRlcPduInfo: List[SlRlcPduInfo] = slRlcPduInfo
+        self.slRlcPduInfo: List[SlRlcPduInfo] = slRlcPduInfo
         self._mcs = mcs
         self._numSlPscchRbs = numSlPscchRbs
         self._slPscchSymStart = slPscchSymStart
@@ -118,7 +130,7 @@ class SingleScheduling:
                 "ndi": self._ndi,
                 "rv": self._rv,
                 "priority": self._priority,
-                "slRlcPduInfo": [_slRlcPduInfo.to_dict_c() for _slRlcPduInfo in self._slRlcPduInfo],
+                "slRlcPduInfo": [_slRlcPduInfo.to_dict_c() for _slRlcPduInfo in self.slRlcPduInfo],
                 "mcs": self._mcs,
                 "numSlPscchRbs": self._numSlPscchRbs,
                 "slPscchSymStart": self._slPscchSymStart,
@@ -131,15 +143,19 @@ class SingleScheduling:
                 "txSci1A": self._txSci1A,
                 "slotNumInd": self._slotNumInd}
 
-    def __str__(self) -> str:
+    def single_line_str(self)-> str:
         return str(self._m_frameNum) + "," + str(self._m_subframeNum) + "," + str(self._m_slotNum) + "," + \
               str(self._m_numerology) + "," + str(self._dstL2Id) + "," + str(self._ndi) + "," + str(self._rv) + \
-                "," + str(self._priority) + "," + str(self._slRlcPduInfo) + "," + str(self._mcs) + \
+                "," + str(self._priority) + "," + str(self._mcs) + \
                 "," + str(self._numSlPscchRbs) + "," + str(self._slPscchSymStart) + "," + str(self._slPscchSymLength) + \
                 "," + str(self._slPsschSymStart) + "," + str(self._slPsschSymLength) + "," + str(self._slPsschSubChStart) + \
-                "," + str(self._slPsschSubChLength) + "," + str(self._maxNumPerReserve) + "," + str(self._txSci1A) + "," + str(self._slotNumInd)
+                "," + str(self._slPsschSubChLength) + "," + str(self._maxNumPerReserve) + "," + str(self._txSci1A) + \
+                "," + str(self._slotNumInd)
 
-    def str_var_order() -> str:
+    def __str__(self) -> str:
+        return self.single_line_str() + "," + str(self.slRlcPduInfo)
+
+    def str_var_order_single_line()->str:
         return  _V2X_FRAMENUM + "," + \
                 _V2X_SUBFRAMENUM + "," + \
                 _V2X_SLOTNUM + "," + \
@@ -148,7 +164,6 @@ class SingleScheduling:
                 _V2X_NDI + "," + \
                 _V2X_RV + "," + \
                 _V2X_PRIORITY + "," + \
-                _V2X_SLRLCPDUINFO + "," + \
                 _V2X_MCS + "," + \
                 _V2X_NUMSLPSCCHRBS + "," + \
                 _V2X_SLPSCCHSYMSTART + "," + \
@@ -159,10 +174,13 @@ class SingleScheduling:
                 _V2X_SLPSSCHSUBCHLENGTH + "," + \
                 _V2X_MAXNUMPERRESERVE + "," + \
                 _V2X_TXSCI1A + "," + \
-                _V2X_SLOTNUMIND
+                _V2X_SLOTNUMIND 
+
+    def str_var_order() -> str:
+        return SingleScheduling.str_var_order_single_line() + "," + _V2X_SLRLCPDUINFO
 
     def add_sl_rlc_pdu_info(self, lcid = 0, size = 0):
-        self._slRlcPduInfo.append(SlRlcPduInfo(lcid=lcid, size=size))
+        self.slRlcPduInfo.append(SlRlcPduInfo(lcid=lcid, size=size))
 
 
 class UserScheduling:
@@ -196,21 +214,28 @@ class UserScheduling:
             "tbTxCounter" : self.tbTxCounter,
             "userScheduling" : [_singleSched.to_dict_c() for _singleSched in self.user_scheduling]
             }
+    
     def __str__(self) -> str:
+        return self.single_line_str() + "," + str(self.user_scheduling)
+    
+    def single_line_str(self)-> str:
         return str(self.ue_id) + "," + str(self.cReselCounter) + "," + str(self.slResoReselCounter) + "," + \
               str(self.prevSlResoReselCounter) + "," + str(self.nrSlHarqId) + "," + str(self.nSelected) + \
-                "," + str(self.tbTxCounter) + "," + str(self.user_scheduling)
-
-    def str_var_order() -> str:
+                "," + str(self.tbTxCounter)
+    
+    def str_var_order_single_line()->str:
         return  _V2X_UE_ID + "," + \
                 _V2X_CRESELCOUNTER + "," + \
                 _V2X_SLRESORESELCOUNTER + "," + \
                 _V2X_PREVSLRESORESELCOUNTER + "," + \
                 _V2X_NRSLHARQID + "," + \
                 _V2X_NSELECTED + "," + \
-                _V2X_TBTXCOUNTER + "," + \
-                _V2X_USERSCHEDULING
-    
+                _V2X_TBTXCOUNTER
+
+    def str_var_order() -> str:
+        return  UserScheduling.str_var_order_single_line() + "," + _V2X_USERSCHEDULING
+
+
 class SourceUserScheduling:
     def __init__(self, ue_id) -> None:
         self.ue_id = ue_id
@@ -224,4 +249,33 @@ class SourceUserScheduling:
             "source_id": self.ue_id,
             "destScheduling" : [_destSched.to_dict_c() for _destSched in self.destination_scheduling]
             }
+    
+    def __str__(self) -> str:
+        return str(self.ue_id) + "," + str(self.destination_scheduling)
+
+    def str_var_order() -> str:
+        return _V2X_SOURCE_UE_ID + "," + _V2X_SOURCE_DESTINATION_USER_SCHEDULING
+
+    def get_field_names():
+        return _V2X_TIME + "," + _V2X_PLMN + "," +_V2X_SOURCE_UE_ID + "," + \
+            UserScheduling.str_var_order_single_line() + "," + \
+            SingleScheduling.str_var_order_single_line() + "," + \
+            SlRlcPduInfo.str_var_order()
+    
+    def write_data_to_file(self, filename = "/home/traces/ric_messages.txt", plmn = "111"):
+        # open the file and write the data in recursive mode
+        with open(filename, mode="a+") as file:
+            for _dest_sched in self.destination_scheduling:
+                _dest_sched_str = _dest_sched.single_line_str()
+                for _user_sched in _dest_sched.user_scheduling:
+                    _user_sched_str = _user_sched.single_line_str()
+                    for _rlc_pdu in _user_sched.slRlcPduInfo:
+                        _rlc_pdu_str = str(_rlc_pdu)
+                        _single_row_str =   str(self.ue_id) + "," + \
+                                            _dest_sched_str + "," + \
+                                            _user_sched_str + "," + \
+                                            _rlc_pdu_str
+                        file.write(str(time.time())+ "," + plmn + "," + _single_row_str)
+                        
+
     

@@ -80,6 +80,7 @@ _PACKET_DELAYS_USER_ID =  ["v2xNodeId"]
 _PACKET_DELAYS_USER_ALL_CONNECTIONS =  ['V2XBufferPacketDelaysList', 'V2XBufferPacketDelays']
 # _PACKET_DELAYS_DELAY_INTERVAL_LIST = "v2XPacketDelayIntervalList"
 _PACKET_DELAYS_DELAY_INTERVAL = ["v2XPacketDelayIntervalList", "V2XPacketDelayInterval"]
+_PACKET_DELAYS_HARQ_BUFFER_SIZE = ["v2XPacketDelayIntervalList", "V2XHarqBufferSizeList"]
 _PACKET_DELAYS_DELAY_INTERVAL_LOWER_INTERVAL = ["lowerInterval"]
 _PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL = ["upperInterval"]
 _PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS = ["numberOfPackets"]
@@ -116,11 +117,13 @@ _JSON_PACKET_DELAYS_ALL_USERS_ALL_CONNECTIONS = 'userBufferDelayList'
 _JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS = 'V2XBufferPacketDelaysList'
 # _PACKET_DELAYS_DELAY_INTERVAL_LIST = "v2XPacketDelayIntervalList"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST = "v2XPacketDelayIntervalList"
+_JSON_PACKET_DELAYS_DELAY_HARQ_BUFFER_SIZE_LIST = "v2XHarqBufferSizeList"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_LOWER_INTERVAL = "lowerInterval"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_UPPER_INTERVAL = "upperInterval"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS = "numberOfPackets"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_RESERVATION_PERIOD = "reservationPeriod"
 _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE = "bufferSize"
+_JSON_PACKET_DELAYS_DELAY_INTERVAL_HARQ_ID = "harqId"
 
 # sci message 
 _JSON_SCI_MESSAGES = "sciMessages"
@@ -423,7 +426,53 @@ class V2XSciMessages:
     
     def _from_dict(self):
         self.sci_messages = [V2XSciMessage(None, None, from_dict=_sci_dict_msg) for _sci_dict_msg in self._from_dict_data[_JSON_SCI_MESSAGES]]
-        
+
+class PacketDelayHarqBufferSize:
+    def __init__(self, input_dict, from_dict=None):
+        self._input_dict = input_dict
+        self.harqId:int = -1
+        self.numberOfPackets: int = -1
+        self.bufferSize:int = -1
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
+        else:
+            # decoding the tag buffer through the c libraries
+            self._parse()
+    
+    def _parse(self, input_dict: Union[dict, List[dict]] = None):
+        if input_dict is None:
+            input_dict = self._input_dict
+        try:
+            self.harqId = float(reduce(operator.getitem, _JSON_PACKET_DELAYS_DELAY_INTERVAL_HARQ_ID, input_dict))
+            self.numberOfPackets = int(reduce(operator.getitem, _PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS, input_dict))
+            self.bufferSize = int(reduce(operator.getitem, _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE, input_dict))
+        except KeyError:
+            # print("Error in PacketDelayInterval")
+            pass
+    
+    def is_valid(self):
+        return (self.harqId > -1) & (self.bufferSize > -1) & (self.numberOfPackets>-1)
+
+    def to_dict(self):
+        return {_JSON_PACKET_DELAYS_DELAY_INTERVAL_HARQ_ID: self.harqId, 
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS: self.numberOfPackets,
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE: self.bufferSize
+                }
+    
+    def _from_dict(self):
+        self.numberOfPackets = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS]
+        self.harqId = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_HARQ_ID]
+        self.bufferSize = self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE]
+    
+    def __str__(self) -> str:
+        return str(self.harqId) + "," + str(self.numberOfPackets) + "," + str(self.bufferSize)
+
+    def str_var_order() -> str:
+        return  _JSON_PACKET_DELAYS_DELAY_INTERVAL_HARQ_ID + "," + \
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_NUM_PACKETS + "," + \
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_BUFFER_SIZE     
 
 class PacketDelayInterval:
     def __init__(self, input_dict, from_dict=None):
@@ -433,7 +482,6 @@ class PacketDelayInterval:
         self.numberOfPackets: int = -1
         self.bufferSize:int = -1
         self.reservationPeriod: float = None # the reservation period or the periodicity of traffic
-        self._parse()
         self._from_dict_data = from_dict
         if self._from_dict_data is not None:
             # we parse the dict and update the fields
@@ -487,6 +535,7 @@ class PacketDelayConnectionsIntervals:
         self._input_dict = input_dict
         self.ue_id: int = -1
         self.delayIntervals:List[PacketDelayInterval] = []
+        self.harqBufferSize: List[PacketDelayHarqBufferSize] = []
         self._from_dict_data = from_dict
         if self._from_dict_data is not None:
             # we parse the dict and update the fields
@@ -499,6 +548,7 @@ class PacketDelayConnectionsIntervals:
             input_dict = self._input_dict
         self.ue_id = int(reduce(operator.getitem, _PACKET_DELAYS_USER_ID, input_dict))
         _packet_delay_intervals = reduce(operator.getitem, _PACKET_DELAYS_DELAY_INTERVAL, input_dict)
+        _harq_buffer_size_list = reduce(operator.getitem, _PACKET_DELAYS_HARQ_BUFFER_SIZE, input_dict)
         try:
             packet_intervals_list:List[PacketDelayInterval] = []
             if isinstance(_packet_delay_intervals, list):
@@ -514,25 +564,46 @@ class PacketDelayConnectionsIntervals:
             self.delayIntervals = packet_intervals_list
         except KeyError:
             pass
+        # parce harq buffer sizes
+        try:
+            harq_buffer_size_objs: List[PacketDelayHarqBufferSize] = []
+            if isinstance(_harq_buffer_size_list, list):
+                for _harq_buffer_size in _harq_buffer_size_list:
+                    _harq_buffer_size_obj = PacketDelayHarqBufferSize(_harq_buffer_size)
+                    if _harq_buffer_size_obj.is_valid():
+                        harq_buffer_size_objs.append(_harq_buffer_size_obj)
+            else:
+                _harq_buffer_size = _harq_buffer_size_list
+                _harq_buffer_size_obj = PacketDelayHarqBufferSize(_harq_buffer_size)
+                if _harq_buffer_size_obj.is_valid():
+                    harq_buffer_size_objs.append(_harq_buffer_size_obj)
+            self.harqBufferSize = harq_buffer_size_objs
+        except KeyError:
+            pass
 
     def is_valid(self):
-        return all([interval.is_valid() for interval in self.delayIntervals]) & self.ue_id>-1
+        return all([interval.is_valid() for interval in self.delayIntervals]) & self.ue_id>-1 & \
+                all([_buffer_size.is_valid() for _buffer_size in self.harqBufferSize])
     
     def to_dict(self):
         return {_JSON_PACKET_DELAYS_USER_ID: self.ue_id, 
                 _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST: [delays_interval.to_dict() for delays_interval in self.delayIntervals],
+                _JSON_PACKET_DELAYS_DELAY_HARQ_BUFFER_SIZE_LIST: [_buffer_size.to_dict() for _buffer_size in self.harqBufferSize]
                 }
     
     def _from_dict(self):
         self.ue_id = self._from_dict_data[_JSON_PACKET_DELAYS_USER_ID]
         self.delayIntervals = [PacketDelayInterval(None, from_dict=_packet_delay_interval_msg) for _packet_delay_interval_msg in self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST]]
+        self.harqBufferSize = [PacketDelayHarqBufferSize(None, from_dict=_harq_buffer_size_msg) for _harq_buffer_size_msg in self._from_dict_data[_JSON_PACKET_DELAYS_DELAY_HARQ_BUFFER_SIZE_LIST]]
 
     def __str__(self) -> str:
-        return str(self.ue_id) + "," + str([str(delay_interval) for delay_interval in self.delayIntervals])
+        return str(self.ue_id) + "," + str([str(delay_interval) for delay_interval in self.delayIntervals]) + "," + \
+                str([str(harq_buff) for harq_buff in self.harqBufferSize])
 
     def str_var_order() -> str:
         return  _JSON_PACKET_DELAYS_USER_ID + "," + \
-                _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST
+                _JSON_PACKET_DELAYS_DELAY_INTERVAL_LIST + "," + \
+                _JSON_PACKET_DELAYS_DELAY_HARQ_BUFFER_SIZE_LIST
     
 class PacketDelaySingleUserConnectionsDelay:
     def __init__(self, input_dict, from_dict=None):
@@ -583,7 +654,6 @@ class PacketDelaySingleUserConnectionsDelay:
         self.ue_id = self._from_dict_data[_JSON_PACKET_DELAYS_USER_ID]
         self.all_connections_delays = [PacketDelayConnectionsIntervals(None, from_dict=_packet_delays_single_user_msg) for _packet_delays_single_user_msg in self._from_dict_data[_JSON_PACKET_DELAYS_USER_ALL_CONNECTIONS]]
 
-    
     def __str__(self) -> str:
         return str(self.ue_id) + "," + str([str(_connection) for _connection in  self.all_connections_delays])
 

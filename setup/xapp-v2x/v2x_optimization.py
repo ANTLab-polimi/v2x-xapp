@@ -85,6 +85,12 @@ class V2XFormulation:
         self._needed_symbols_per_buffer: List[int] = []
         self._served_symbols_per_buffer: List[int] = []
         self._buffer_being_served_ind = 0
+        # the harq part
+        self._harq_buffer_status: List[Tuple[int, int, int, int, int]] = []
+        self._harq_buffer_served: List[bool] = []
+        self._harq_needed_rbs_per_buffer: List[int] = []
+        self._harq_needed_symbols_per_buffer: List[int] = []
+        self._harq_buffer_being_served = 0
 
     # the function will get all the tuple of all the connections
     # and will sort them based on the sorting order given by the formula in point 1.
@@ -98,18 +104,29 @@ class V2XFormulation:
             self._needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._needed_rbs_per_buffer]
             self._served_symbols_per_buffer = [0]*len(self._needed_symbols_per_buffer)
             self._buffer_being_served_ind = 0
+            # harq buffer
+            self._harq_buffer_status = self.preoptimize.get_all_users_harq_buffer_status()
+            self._harq_buffer_served = [False]*len(self._harq_buffer_status)
+            self._harq_needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(_buffer_status_tuple[UserPreoptimization.HARQ_BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._harq_buffer_status]
+            self._harq_needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._harq_needed_rbs_per_buffer]
+            self._harq_served_symbols_per_buffer = [0]*len(self._harq_needed_symbols_per_buffer)
+            self._harq_buffer_being_served_ind = 0
 
     def _add_source_scheduling_list(self, source_user_scheduling: List[SourceUserScheduling],
                                    source_ue_id: int, dest_ue_id: int,
                                    frame: int, subframe: int, slot: int,
-                                   numerology: int, sym_start: int, sym_length: int,
-                                   subchannel_start: int, subchannel_length: int 
+                                   numerology: int, ndi: int,
+                                   sym_start: int, sym_length: int,
+                                   subchannel_start: int, subchannel_length: int ,
+                                   nr_sl_harq_id: int= -1
                                    ):
         _single_sched = SingleScheduling(m_frameNum=frame, 
                                 m_subframeNum=subframe,
                                 m_slotNum=slot, 
                                 m_numerology = numerology, 
                                 dstL2Id = self._all_buffer_status[self._buffer_being_served_ind][1],
+                                ndi=ndi,
+                                priority=0,
                                 slPsschSymStart = sym_start,
                                 slPsschSymLength = sym_length,
                                 slPsschSubChStart = subchannel_start,
@@ -118,7 +135,13 @@ class V2XFormulation:
         
         _filter_source_user = list(filter(lambda source_sched: source_sched.ue_id == source_ue_id, source_user_scheduling))
         if len(_filter_source_user) == 0:
-            _dest_sched = UserScheduling(ue_id=dest_ue_id)
+            # we create the User scheduling with all counters to 1
+            _dest_sched = UserScheduling(ue_id=dest_ue_id, cReselCounter=1, 
+                                         slResoReselCounter=1, 
+                                         prevSlResoReselCounter=1,
+                                         nrSlHarqId=nr_sl_harq_id,
+                                         nSelected=1, 
+                                         tbTxCounter=0)
             _dest_sched.add_single_scheduling(_single_sched)
             _source_user_scheduling = SourceUserScheduling(ue_id=source_ue_id)
             _source_user_scheduling.add_dest_user(_dest_sched)
@@ -131,12 +154,19 @@ class V2XFormulation:
             _dest_sched_list:List[UserScheduling] = list(filter(lambda _dest_sched:_dest_sched.ue_id == dest_ue_id, _source_user_scheduling.destination_scheduling))
             if len(_dest_sched_list)>0:
                 # scheduling for this user already exist
-                _dest_sched_list[0].user_scheduling.append(_single_sched)
+                _dest_sched =_dest_sched_list[0]
             else:
                 # add destination scheduling
                 _dest_sched = UserScheduling(dest_ue_id)
                 _dest_sched.add_single_scheduling(_single_sched)
                 _source_user_scheduling.add_dest_user(_dest_sched)
+            # add single scheduling in the dest sched obj
+            _dest_sched.add_single_scheduling(_single_sched)
+            
+            # add sl harq if if it is retx 
+            if ndi == 1:
+                _dest_sched.nrSlHarqId = nr_sl_harq_id
+                # nr_sl_harq_id
 
     # the scheduled scheme is a simple TDMA, where we assign a symbol over the entire bandwidth
     def schedule_slot(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
@@ -146,24 +176,53 @@ class V2XFormulation:
         # we exit the while loop when we have used whole of the symbols in the slot
         # or we have serverd all of the buffer
         source_user_scheduling: List[SourceUserScheduling] = []
+
+        # we serve first all the harq buffer
+        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
+               (self._harq_buffer_being_served_ind < len(self._harq_needed_symbols_per_buffer)):
+            # first case is when the available symbols in slot is smaller than what needed by buffer
+            # we assign all the symbols to that buffer
+            _served_symbols = 0
+            _needed_unserved_symbols = (self._harq_needed_symbols_per_buffer[self._harq_buffer_being_served_ind] - \
+                                        self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind])
+            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            if _needed_unserved_symbols>_remaining_available_symbols:
+                _served_symbols = _remaining_available_symbols
+                self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind]+=_served_symbols
+                _used_symbols_in_slot += _served_symbols
+            else:
+                # we assign the amount of resources needed
+                _served_symbols = _needed_unserved_symbols
+                self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind] += _served_symbols
+                # move to the next buffer until
+                self._harq_buffer_being_served_ind +=1
+                _used_symbols_in_slot += _served_symbols
+            
+            if _served_symbols > 0:
+                # add data to the list
+                self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                 source_ue_id= self._harq_buffer_status[self._harq_buffer_being_served_ind][0],
+                                                 dest_ue_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][1],
+                                                 frame=frame, subframe=subframe, slot=slot, 
+                                                 numerology=2, ndi=0,
+                                                 sym_start = _used_symbols_in_slot, 
+                                                 sym_length=_served_symbols,
+                                                 subchannel_start=0, 
+                                                 subchannel_length=self.subchannel_size,
+                                                 nr_sl_harq_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_ID_INDEX]
+                                                 )
+
         while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
                (self._buffer_being_served_ind < len(self._served_symbols_per_buffer)):
             # first case is when the available symbols in slot is smaller than what needed by buffer
             # we assign all the symbols to that buffer
+            _served_symbols = 0
             _needed_unserved_symbols = (self._needed_symbols_per_buffer[self._buffer_being_served_ind] - \
                                         self._served_symbols_per_buffer[self._buffer_being_served_ind])
             _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
             if  _needed_unserved_symbols > _remaining_available_symbols:
                 _served_symbols = _remaining_available_symbols
                 
-                # add data to the list
-                self._add_source_scheduling_list(source_user_scheduling, 
-                                                 self._all_buffer_status[self._buffer_being_served_ind][0],
-                                                 self._all_buffer_status[self._buffer_being_served_ind][1],
-                                                 frame, subframe, slot, 2,
-                                                 _used_symbols_in_slot, _served_symbols,
-                                                 0, self.subchannel_size
-                                                 )
                 self._served_symbols_per_buffer[self._buffer_being_served_ind]+=_served_symbols
                 _used_symbols_in_slot += _served_symbols
             else:
@@ -173,6 +232,19 @@ class V2XFormulation:
                 # move to the next buffer until
                 self._buffer_being_served_ind +=1
                 _used_symbols_in_slot += _served_symbols
+            if _served_symbols > 0:
+                # add data to the list
+                self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][0],
+                                                dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][1],
+                                                frame=frame, subframe=subframe, slot=slot, 
+                                                numerology=2, ndi=1,
+                                                sym_start = _used_symbols_in_slot, 
+                                                sym_length=_served_symbols,
+                                                subchannel_start=0, 
+                                                subchannel_length=self.subchannel_size
+                                                )
+                
 
         return source_user_scheduling
 

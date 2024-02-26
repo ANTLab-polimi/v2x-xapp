@@ -9,6 +9,8 @@
 
 #include "L3-RRC-Measurements.h"
 
+#include "V2X-Single-User-report.h"
+
 // #include "OCTET_STRING.h"
 
 // static asn_oer_constraints_t asn_OER_type_MeasurementValue_constr_1 CC_NOTUSED = {
@@ -17,7 +19,7 @@
 asn_per_constraints_t asn_PER_type_MeasurementValue_constr_1 CC_NOTUSED = {
 	// { APC_CONSTRAINED | APC_EXTENSIBLE,  2,  2,  0,  3 }	/* (0..3,...) */,
 	// modified
-	{ APC_CONSTRAINED | APC_EXTENSIBLE,  3,  3,  0,  4 }	/* (0..7,...) */,
+	{ APC_CONSTRAINED | APC_EXTENSIBLE,  3,  3,  0,  5 }	/* (0..7,...) */,
 	// end modification
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
@@ -77,6 +79,15 @@ asn_TYPE_member_t asn_MBR_MeasurementValue_1[] = {
 		0, 0, /* No default value */
 		"valueOctetString"
 		},
+	{ ATF_POINTER, 0, offsetof(struct MeasurementValue, choice.valueV2XSingleUserReport),
+		(ASN_TAG_CLASS_CONTEXT | (5 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_V2X_Single_User_Report,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"valueV2XSingleUserReport"
+		},
 	// end modification
 };
 static const asn_TYPE_tag2member_t asn_MAP_MeasurementValue_tag2el_1[] = {
@@ -85,7 +96,8 @@ static const asn_TYPE_tag2member_t asn_MAP_MeasurementValue_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 }, /* noValue */
     { (ASN_TAG_CLASS_CONTEXT | (3 << 2)), 3, 0, 0 }, /* valueRRC */
 	// modified
-	{ (ASN_TAG_CLASS_CONTEXT | (4 << 2)), 4, 0, 0 } /* value Octet String */
+	{ (ASN_TAG_CLASS_CONTEXT | (4 << 2)), 4, 0, 0 }, /* value Octet String */
+	{ (ASN_TAG_CLASS_CONTEXT | (5 << 2)), 5, 0, 0 }, /* value valueV2XSingleUserReport*/
 	// end modification
 };
 asn_CHOICE_specifics_t asn_SPC_MeasurementValue_specs_1 = {
@@ -96,12 +108,12 @@ asn_CHOICE_specifics_t asn_SPC_MeasurementValue_specs_1 = {
 	asn_MAP_MeasurementValue_tag2el_1,
 	// 4,	/* Count of tags in the map */
 	// modified
-	5,	/* Count of tags in the map */
+	6,	/* Count of tags in the map */
 	// end modification
 	0, 0,
 	// 4	/* Extensions start */
 	// modified
-	5,	/* Extensions start */
+	6,	/* Extensions start */
 	// end modification
 };
 asn_TYPE_descriptor_t asn_DEF_MeasurementValue = {
@@ -117,7 +129,7 @@ asn_TYPE_descriptor_t asn_DEF_MeasurementValue = {
 	asn_MBR_MeasurementValue_1,
 	// 4,	/* Elements count */
 	// modified
-	5,	/* Elements count */
+	6,	/* Elements count */
 	// end modification
 	&asn_SPC_MeasurementValue_specs_1	/* Additional specs */
 };

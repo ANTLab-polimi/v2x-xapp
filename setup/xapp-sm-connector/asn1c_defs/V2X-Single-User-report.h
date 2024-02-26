@@ -23,11 +23,12 @@ struct V2XSciMessageItemList;
 
 /* L3-RRC-Measurements */
 typedef struct V2X_Single_User_Report {
-	
-	struct V2XAllBufferPacketDelays	*userBufferDelayList;	/* OPTIONAL */
-	struct V2XSciMessageItemList	*userReceivedSciMessages;	/* OPTIONAL */
+
 	double xPosition;
 	double yPosition;
+	struct V2XAllBufferPacketDelays	*userBufferDelayList;	/* OPTIONAL */
+	struct V2XSciMessageItemList	*userReceivedSciMessages;	/* OPTIONAL */
+	
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.

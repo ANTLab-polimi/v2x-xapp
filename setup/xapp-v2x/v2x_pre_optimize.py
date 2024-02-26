@@ -13,7 +13,11 @@ from more_itertools import locate
 
 class UserPreoptimization:
     BUFFER_SIZE_INDEX = 5
-    def __init__(self, ue_id: int = -1, head_of_line_packet_delay: List[Tuple[int, int, float, float, int, int]]=[], 
+    HARQ_BUFFER_SIZE_INDEX = 3
+    HARQ_ID_INDEX = 2
+    def __init__(self, ue_id: int = -1, 
+                 head_of_line_packet_delay: List[Tuple[int, int, float, float, int, int]]=[], 
+                 retx_buffer_size: List[Tuple[int, int, int, int, int]] = [],
                  position_x: float = None, position_y: float = None,
                  needed_resources: int = -1, 
                  goodnes_table_of_resources:np.ndarray=None) -> None:
@@ -21,6 +25,8 @@ class UserPreoptimization:
         # head of line packet: source id, dest id, lower Interval (serve as id in the group of interval),
         # reservation period, number of packets, buffer size
         self.head_of_line_packet_delay:List[Tuple[int, int, float, float, int, int]]=head_of_line_packet_delay 
+        # the retx buffer size report: source id, dest id, harq iq, buffer size, num packets
+        self.retx_buffer_size: List[Tuple[int, int, int, int, int]] = retx_buffer_size
         # the head of line delay of all packets (packet interval id & head of line delay, max delay for the packet)
         self.position_x:float=position_x
         self.position_y:float=position_y
@@ -48,6 +54,13 @@ class UserPreoptimization:
                      _delay_intervals.reservationPeriod, 
                      _delay_intervals.numberOfPackets,
                      _delay_intervals.bufferSize)
+                )
+            for _harq_buff_size in _con.harqBufferSize:
+                self.retx_buffer_size.append(
+                    self.ue_id, _con.ue_id,
+                    _harq_buff_size.harqId,
+                    _harq_buff_size.bufferSize,
+                    _harq_buff_size.numberOfPackets
                 )
 
     
@@ -90,6 +103,13 @@ class V2XPreScheduling:
             _all_users_buffer_data.extend(_preopt_list.head_of_line_packet_delay)
         self._is_data_updated = False
         return _all_users_buffer_data
+    
+    def get_all_users_harq_buffer_status(self):
+        _all_users_harq_buffer_data: List[Tuple[int, int, int, int, int]] = []
+        for _preopt_list in self._single_user_preopt_list:
+            _all_users_harq_buffer_data.extend(_preopt_list.retx_buffer_size)
+        self._is_data_updated = False
+        return _all_users_harq_buffer_data
             
 
     # get single user Preopt class instance

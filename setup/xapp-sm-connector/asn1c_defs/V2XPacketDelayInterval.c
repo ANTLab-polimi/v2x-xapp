@@ -21,7 +21,7 @@ memb_lowerInterval_constraint_1(const asn_TYPE_descriptor_t *td, const void *spt
 	
 	value = *(const long *)sptr;
 	
-	if((value >= 0 && value <= 65535)) {
+	if((value >= 0 && value <= 4294967295)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -46,7 +46,7 @@ memb_upperInterval_constraint_1(const asn_TYPE_descriptor_t *td, const void *spt
 	
 	value = *(const long *)sptr;
 	
-	if((value >= 0 && value <= 65535)) {
+	if((value >= 0 && value <= 4294967295)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -121,7 +121,7 @@ memb_bufferSize_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
 	
 	value = *(const long *)sptr;
 	
-	if((value >= 0 && value <= 65535)) {
+	if((value >= 0 && value <= 4294967295)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -137,7 +137,7 @@ memb_bufferSize_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
 // 	{ 2, 1 }	/* (0..65535) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_lowerInterval_constr_2 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (0..65535) */,
+	{ APC_CONSTRAINED,	 32,  32,  0,  4294967295 }	/* (0..65535) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };
@@ -145,7 +145,7 @@ static asn_per_constraints_t asn_PER_memb_lowerInterval_constr_2 CC_NOTUSED = {
 // 	{ 2, 1 }	/* (0..65535) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_upperInterval_constr_3 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (0..65535) */,
+	{ APC_CONSTRAINED,	 32,  32,  0,  4294967295 }	/* (0..65535) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };
@@ -163,16 +163,16 @@ static asn_per_constraints_t asn_PER_memb_numberOfPackets_constr_4 CC_NOTUSED = 
 // 	{ 2, 1 }	/* (0..1000) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_reservationPeriod_constr_5 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 10,  10,  0,  1000 }	/* (0..1000) */,
+	{ APC_CONSTRAINED,	 16,  16,  0,  1000 }	/* (0..1000) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };
 
 // static asn_oer_constraints_t asn_OER_memb_bufferSize_constr_6 CC_NOTUSED = {
-// 	{ 2, 1 }	/* (0..1000) */,
+// 	{ 4, 1 }	/* (0..1000) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_bufferSize_constr_6 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (0..1000) */,
+	{ APC_CONSTRAINED,	 32,  32,  0,  4294967295 }	/* (0..1000) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };

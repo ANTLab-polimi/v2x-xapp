@@ -24,6 +24,8 @@ extern "C" {
 /* Forward declarations */
 struct V2XPacketDelayInterval;
 
+struct V2XHarqBufferSize;
+
 /* V2XBufferPacketDelays */
 typedef struct V2XBufferPacketDelays {
 	V2XId_t	 v2xNodeId;
@@ -33,6 +35,13 @@ typedef struct V2XBufferPacketDelays {
 		/* Context for parsing across buffer boundaries */
 		asn_struct_ctx_t _asn_ctx;
 	} v2XPacketDelayIntervalList;
+
+	struct V2XBufferPacketDelays__V2XHarqBufferSizeList {
+		A_SEQUENCE_OF(struct V2XHarqBufferSize) list;
+		
+		/* Context for parsing across buffer boundaries */
+		asn_struct_ctx_t _asn_ctx;
+	} V2XHarqBufferSizeList;
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.
@@ -45,7 +54,7 @@ typedef struct V2XBufferPacketDelays {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2XBufferPacketDelays;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2XBufferPacketDelays_specs_1;
-extern asn_TYPE_member_t asn_MBR_V2XBufferPacketDelays_1[2];
+extern asn_TYPE_member_t asn_MBR_V2XBufferPacketDelays_1[3];
 
 #ifdef __cplusplus
 }

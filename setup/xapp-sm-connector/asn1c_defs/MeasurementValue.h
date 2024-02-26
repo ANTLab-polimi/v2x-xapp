@@ -31,7 +31,10 @@ typedef enum MeasurementValue_PR {
 	MeasurementValue_PR_noValue,
 	MeasurementValue_PR_valueRRC,
 	// modified
-	MeasurementValue_PR_valueOctetString
+	MeasurementValue_PR_valueOctetString,
+	// MeasurementValue_PR_valueV2XBufferDelay,
+	// MeasurementValue_PR_valueV2XSciMessages
+	MeasurementValue_PR_valueV2XSingleUserReport
 	// end modification
 	/* Extensions may appear below */
 	
@@ -39,6 +42,9 @@ typedef enum MeasurementValue_PR {
 
 /* Forward declarations */
 struct L3_RRC_Measurements;
+// struct V2XAllUsersBufferDelayReports;
+// struct V2XSciMessageItemList;
+struct V2X_Single_User_Report;
 
 /* MeasurementValue */
 typedef struct MeasurementValue {
@@ -52,6 +58,9 @@ typedef struct MeasurementValue {
 		// OCTET_STRING_t *valueOctetString;
 		// Buffer_String_t *valueOctetString;
 		Buffer_String_t valueOctetString;
+		// struct V2XAllUsersBufferDelayReports *valueV2XBufferDelay;
+		// struct V2XSciMessageItemList *valueV2XSciMessages;
+		struct V2X_Single_User_Report *valueV2XSingleUserReport;
 		// end modification
 		/*
 		 * This type is extensible,
@@ -68,7 +77,7 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasurementValue;
 extern asn_CHOICE_specifics_t asn_SPC_MeasurementValue_specs_1;
 // extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[4];
 // modified
-extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[5];
+extern asn_TYPE_member_t asn_MBR_MeasurementValue_1[6];
 // end modification
 extern asn_per_constraints_t asn_PER_type_MeasurementValue_constr_1;
 

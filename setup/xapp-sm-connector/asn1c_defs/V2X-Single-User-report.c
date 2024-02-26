@@ -12,26 +12,8 @@
 
 asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[] = {
 	
-	{ ATF_POINTER, 0, offsetof(struct V2X_Single_User_Report, userBufferDelayList),
-		(ASN_TAG_CLASS_CONTEXT | (0 << 2)),
-		+1,	/* EXPLICIT tag at current level */
-		&asn_DEF_V2XAllBufferPacketDelays,
-		0,
-		{ 0, 0, 0 },
-		0, 0, /* No default value */
-		"userBufferDelayList"
-		},
-	{ ATF_POINTER, 1, offsetof(struct V2X_Single_User_Report, userReceivedSciMessages),
-		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
-		+1,	/* EXPLICIT tag at current level */
-		&asn_DEF_V2XSciMessageItemList,
-		0,
-		{ 0, 0, 0 },
-		0, 0, /* No default value */
-		"userReceivedSciMessages"
-		},
 	{ ATF_NOFLAGS, 0, offsetof(struct V2X_Single_User_Report, xPosition),
-		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
+		(ASN_TAG_CLASS_CONTEXT | (0 << 2)),
 		-1,	/* IMPLICIT tag at current level */
 		&asn_DEF_NativeReal,
 		0,
@@ -40,7 +22,7 @@ asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[] = {
 		"xPosition"
 		},
 	{ ATF_NOFLAGS, 0, offsetof(struct V2X_Single_User_Report, yPosition),
-		(ASN_TAG_CLASS_CONTEXT | (3 << 2)),
+		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
 		-1,	/* IMPLICIT tag at current level */
 		&asn_DEF_NativeReal,
 		0,
@@ -48,8 +30,26 @@ asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[] = {
 		0, 0, /* No default value */
 		"yPosition"
 		},
+	{ ATF_POINTER, 0, offsetof(struct V2X_Single_User_Report, userBufferDelayList),
+		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
+		+1,	/* EXPLICIT tag at current level */
+		&asn_DEF_V2XAllBufferPacketDelays,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"userBufferDelayList"
+		},
+	{ ATF_POINTER, 1, offsetof(struct V2X_Single_User_Report, userReceivedSciMessages),
+		(ASN_TAG_CLASS_CONTEXT | (3 << 2)),
+		+1,	/* EXPLICIT tag at current level */
+		&asn_DEF_V2XSciMessageItemList,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"userReceivedSciMessages"
+		},
 };
-static const int asn_MAP_V2X_Single_User_Report_oms_1[] = { 1, 2 };
+static const int asn_MAP_V2X_Single_User_Report_oms_1[] = { 2, 3 };
 static const ber_tlv_tag_t asn_DEF_V2X_Single_User_Report_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
