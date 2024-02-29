@@ -81,6 +81,7 @@ def _schedule_data(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_
     return v2x_source_scheduling_users
 
 def _check_ric_commands_to_be_sent(send_callback):
+    logger = logging.getLogger('')
     try:
         _shared_list_ric_command = shm.ShareableList(name="ric_commands")
     except FileNotFoundError as err:
@@ -91,6 +92,8 @@ def _check_ric_commands_to_be_sent(send_callback):
     for _ric_command_ind ,_ric_command_dict_str in enumerate(_shared_list_ric_command):
         # check if there is data
         if len(_ric_command_dict_str) > 0:
+            logger.debug(f"Ric command available in the queue with length {len(_ric_command_dict_str)}")
+            logger.debug(_ric_command_dict_str)
             _data_dict = eval(_ric_command_dict_str)
             # get the data from the dict
             _plmn = _data_dict.get(transform._JSON_PLMN)
@@ -246,13 +249,13 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             # id data is available
             # here we schedule for the next slot until we reach the limit of 1 frame or 10 subframes
             
-            print("Q size in get " + str((plmn, queue.qsize())))
+            # logger.debug("Q size in get " + str((plmn, queue.qsize())))
             v2x_source_scheduling_all_users = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
-            logger.info("Data scheduled")
             # write data to the file
             for _source_sched in v2x_source_scheduling_all_users:
+                logger.info("Data scheduled & writing to file")
                 _source_sched.write_data_to_file(plmn=_plmn)
             # insert data in the shareable list
             _optimized_dict = {
@@ -270,11 +273,11 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             subframe = (subframe + (1 if slot==0 else 0))%10
             # the same logic we deploy for the frame 
             frame = frame + (1 if ((subframe == 0) & (slot==0)) else 0)
-
             # check if all the slot in the needed has been scheduled
             # if so we set _block_queue to true to wait for new data to save 
             # cpu usage
             if (_frame_schedule_until == frame) & (_subframe_schedule_until == subframe):
+                logger.info("Scheduling finished, blocking queue for next data report")
                 _block_queue = True
                 _is_scheduled_needed = False
 

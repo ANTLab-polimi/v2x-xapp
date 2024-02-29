@@ -6,6 +6,7 @@ from transform_xml_to_dict_v2x import _JSON_PLMN
 from v2x_ric_message_format import SourceUserScheduling, UserScheduling, SingleScheduling, SlRlcPduInfo
 import pickle
 import datetime
+import logging
 
 _JSON_TIMESTAMP = 'time'
 _USABLE_SYMBOLS_PER_SLOT = 8
@@ -111,6 +112,9 @@ class V2XFormulation:
             self._harq_needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._harq_needed_rbs_per_buffer]
             self._harq_served_symbols_per_buffer = [0]*len(self._harq_needed_symbols_per_buffer)
             self._harq_buffer_being_served_ind = 0
+            logger = logging.getLogger('')
+            logger.debug(f"Update buffer status: size {len(self._all_buffer_status)}, data")
+            logger.debug(self._all_buffer_status)
 
     def _add_source_scheduling_list(self, source_user_scheduling: List[SourceUserScheduling],
                                    source_ue_id: int, dest_ue_id: int,
@@ -172,11 +176,24 @@ class V2XFormulation:
     def schedule_slot(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
         # first update the buffer status if new data has arrived
         self._update_resource_request_by_priority()
+
+        # check if data scheduling has finished
+        if (self._buffer_being_served_ind == len(self._all_buffer_status)) & \
+            (self._harq_buffer_being_served_ind == len(self._harq_buffer_status)):
+            return []
+
         _used_symbols_in_slot = 0
         # we exit the while loop when we have used whole of the symbols in the slot
         # or we have serverd all of the buffer
         source_user_scheduling: List[SourceUserScheduling] = []
-
+        logger = logging.getLogger('')
+        logger.debug(f"Schedule slot ({frame}, {subframe}, {slot})")
+        logger.debug(f"Number of scheduling request {len(self._needed_rbs_per_buffer)}")
+        logger.debug(f"Needed rbs per buffer {self._needed_rbs_per_buffer}")
+        logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
+        logger.debug(f"Served symbols per buffer {self._served_symbols_per_buffer}")
+        logger.debug(f"Buffer being served ind {self._buffer_being_served_ind}")
+        logger.debug(f"Harq buffer needed symbols {self._harq_needed_symbols_per_buffer}")
         # we serve first all the harq buffer
         while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
                (self._harq_buffer_being_served_ind < len(self._harq_needed_symbols_per_buffer)):
@@ -216,10 +233,14 @@ class V2XFormulation:
                (self._buffer_being_served_ind < len(self._served_symbols_per_buffer)):
             # first case is when the available symbols in slot is smaller than what needed by buffer
             # we assign all the symbols to that buffer
+            
             _served_symbols = 0
             _needed_unserved_symbols = (self._needed_symbols_per_buffer[self._buffer_being_served_ind] - \
                                         self._served_symbols_per_buffer[self._buffer_being_served_ind])
             _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            logger.debug(f"Serving ind {self._buffer_being_served_ind}, needed sym {_needed_unserved_symbols}" +\
+                         f" remaining {_remaining_available_symbols}")
+            _finished_serving_user = False
             if  _needed_unserved_symbols > _remaining_available_symbols:
                 _served_symbols = _remaining_available_symbols
                 
@@ -230,10 +251,12 @@ class V2XFormulation:
                 _served_symbols = _needed_unserved_symbols
                 self._served_symbols_per_buffer[self._buffer_being_served_ind] += _served_symbols
                 # move to the next buffer until
-                self._buffer_being_served_ind +=1
+                _finished_serving_user = True
                 _used_symbols_in_slot += _served_symbols
+            logger.debug(f"Served symbols {_served_symbols}, used symbols in slot {_used_symbols_in_slot}")
             if _served_symbols > 0:
                 # add data to the list
+                logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
                 self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
                                                 source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][0],
                                                 dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][1],
@@ -244,7 +267,9 @@ class V2XFormulation:
                                                 subchannel_start=0, 
                                                 subchannel_length=self.subchannel_size
                                                 )
-                
+            # move to the next user if we finished serving this user
+            if _finished_serving_user:
+                self._buffer_being_served_ind +=1        
 
         return source_user_scheduling
 
