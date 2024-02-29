@@ -13,22 +13,26 @@
 #include <constr_SEQUENCE.h>
 #include <NativeReal.h>
 
+#include "V2XAllBufferPacketDelays.h"
+// #include "V2XSciMessageItem-List.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Forward declarations */
-struct V2XAllBufferPacketDelays;
+// struct V2XAllBufferPacketDelays;
 struct V2XSciMessageItemList;
 
 /* L3-RRC-Measurements */
 typedef struct V2X_Single_User_Report {
-
+	
 	double xPosition;
 	double yPosition;
-	struct V2XAllBufferPacketDelays	*userBufferDelayList;	/* OPTIONAL */
+	// struct V2XAllBufferPacketDelays	*userBufferDelayList;	/* OPTIONAL */
+	V2XAllBufferPacketDelays_t	userBufferDelayList;	/* OPTIONAL */
+	// V2XSciMessageItemList_t	userReceivedSciMessages;	/* OPTIONAL */
 	struct V2XSciMessageItemList	*userReceivedSciMessages;	/* OPTIONAL */
-	
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.
@@ -41,6 +45,7 @@ typedef struct V2X_Single_User_Report {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2X_Single_User_Report;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2X_Single_User_Report_specs_1;
+// extern asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[3];
 extern asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[4];
 
 #ifdef __cplusplus

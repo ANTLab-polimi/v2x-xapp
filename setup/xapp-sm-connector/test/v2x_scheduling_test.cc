@@ -16,7 +16,7 @@
 
 // using namespace tinyxml2;
 
-int main(int argc, char* argv[]){
+int main_sched(int argc, char* argv[]){
     v2x_source_slot_allocations_t* source_alloc = (v2x_source_slot_allocations_t *) calloc(4, sizeof(v2x_source_slot_allocations_t));
     source_alloc[0].source_ue_id = 11;
     source_alloc[1].source_ue_id = 12;

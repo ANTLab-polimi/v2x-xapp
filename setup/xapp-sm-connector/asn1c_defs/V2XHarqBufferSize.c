@@ -85,6 +85,7 @@ memb_bufferSize_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
 // static asn_oer_constraints_t asn_OER_memb_harqId_constr_2 CC_NOTUSED = {
 // 	{ 2, 1 }	/* (0..65535) */,
 // 	-1};
+
 static asn_per_constraints_t asn_PER_memb_harqId_constr_2 CC_NOTUSED = {
 	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (0..65535) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
@@ -92,7 +93,7 @@ static asn_per_constraints_t asn_PER_memb_harqId_constr_2 CC_NOTUSED = {
 };
 
 // static asn_oer_constraints_t asn_OER_memb_numberOfPackets_constr_4 CC_NOTUSED = {
-// 	{ 2, 1 }	/* (0..4294967295) */,
+// 	{ 4, 1 }	/* (0..4294967295) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_numberOfPackets_constr_4 CC_NOTUSED = {
 	{ APC_CONSTRAINED,	 32,  32,  0,  4294967295 }	/* (0..65535) */,
@@ -101,7 +102,7 @@ static asn_per_constraints_t asn_PER_memb_numberOfPackets_constr_4 CC_NOTUSED = 
 };
 
 // static asn_oer_constraints_t asn_OER_memb_bufferSize_constr_6 CC_NOTUSED = {
-// 	{ 2, 1 }	/* (0..1000) */,
+// 	{ 4, 1 }	/* (0..1000) */,
 // 	-1};
 static asn_per_constraints_t asn_PER_memb_bufferSize_constr_6 CC_NOTUSED = {
 	{ APC_CONSTRAINED,	 32,  32,  0,  4294967295 }	/* (0..1000) */,

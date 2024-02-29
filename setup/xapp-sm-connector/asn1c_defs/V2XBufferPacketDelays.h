@@ -41,7 +41,7 @@ typedef struct V2XBufferPacketDelays {
 		
 		/* Context for parsing across buffer boundaries */
 		asn_struct_ctx_t _asn_ctx;
-	} V2XHarqBufferSizeList;
+	} v2XHarqBufferSizeList;
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.

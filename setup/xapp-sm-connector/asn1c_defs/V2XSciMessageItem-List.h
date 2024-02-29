@@ -14,6 +14,7 @@
 /* Including external dependencies */
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
+#include <constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,7 +25,14 @@ struct V2XSciMessageItem;
 
 /* RICaction-NotAdmitted-List */
 typedef struct V2XSciMessageItemList {
-	A_SEQUENCE_OF(struct V2XSciMessageItem) list;
+	// A_SEQUENCE_OF(struct V2XSciMessageItem) list;
+
+	struct V2XSciMessageItemList__V2XSciMessageSingleItem {
+		A_SEQUENCE_OF(struct V2XSciMessageItem) list;
+		
+		/* Context for parsing across buffer boundaries */
+		asn_struct_ctx_t _asn_ctx;
+	} v2XSciMessageSingleItem;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;
@@ -32,9 +40,10 @@ typedef struct V2XSciMessageItemList {
 
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2XSciMessageItemList;
-extern asn_SET_OF_specifics_t asn_SPC_V2XSciMessageItemList_specs_1;
+// extern asn_SET_OF_specifics_t asn_SPC_V2XSciMessageItemList_specs_1;
+extern asn_SEQUENCE_specifics_t asn_SPC_V2XSciMessageItemList_specs_1;
 extern asn_TYPE_member_t asn_MBR_V2XSciMessageItemList_1[1];
-extern asn_per_constraints_t asn_PER_type_V2XSciMessageItemList_constr_1;
+// extern asn_per_constraints_t asn_PER_type_V2XSciMessageItemList_constr_1;
 
 #ifdef __cplusplus
 }

@@ -6,33 +6,9 @@
  */
 
 #include "V2XAllBufferPacketDelays.h"
+#include "V2XSciMessageItem-List.h"
 
 #include "V2XBufferPacketDelays.h"
-static int
-memb_V2XBufferPacketDelaysList_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
-			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
-	size_t size;
-	
-	if(!sptr) {
-		ASN__CTFAIL(app_key, td, sptr,
-			"%s: value not given (%s:%d)",
-			td->name, __FILE__, __LINE__);
-		return -1;
-	}
-	
-	/* Determine the number of elements */
-	size = _A_CSEQUENCE_FROM_VOID(sptr)->count;
-	
-	if((size >= 0 && size <= 1023)) {
-		/* Perform validation of the inner elements */
-		return td->encoding_constraints.general_constraints(td, sptr, ctfailcb, app_key);
-	} else {
-		ASN__CTFAIL(app_key, td, sptr,
-			"%s: constraint failed (%s:%d)",
-			td->name, __FILE__, __LINE__);
-		return -1;
-	}
-}
 
 static int
 memb_V2XBufferPacketDelaysList_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
@@ -49,7 +25,7 @@ memb_V2XBufferPacketDelaysList_constraint_1(const asn_TYPE_descriptor_t *td, con
 	/* Determine the number of elements */
 	size = _A_CSEQUENCE_FROM_VOID(sptr)->count;
 	
-	if((size >= 0 && size <= 1023)) {
+	if((size >= 0 && size <= 65535)) {
 		/* Perform validation of the inner elements */
 		return td->encoding_constraints.general_constraints(td, sptr, ctfailcb, app_key);
 	} else {
@@ -59,13 +35,14 @@ memb_V2XBufferPacketDelaysList_constraint_1(const asn_TYPE_descriptor_t *td, con
 		return -1;
 	}
 }
+
 
 // static asn_oer_constraints_t asn_OER_type_V2XBufferPacketDelaysList_constr_3 CC_NOTUSED = {
 // 	{ 2, 0 },
-// 	-1	/* (SIZE(1..1023)) */};
+// 	-1	/* (SIZE(0..1023)) */};
 static asn_per_constraints_t asn_PER_type_V2XBufferPacketDelaysList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(1..1023)) */,
+	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(1..1023)) */,
 	0, 0	/* No PER value map */
 };
 // static asn_oer_constraints_t asn_OER_memb_V2XBufferPacketDelaysList_constr_3 CC_NOTUSED = {
@@ -73,9 +50,10 @@ static asn_per_constraints_t asn_PER_type_V2XBufferPacketDelaysList_constr_3 CC_
 // 	-1	/* (SIZE(1..1023)) */};
 static asn_per_constraints_t asn_PER_memb_V2XBufferPacketDelaysList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(1..1023)) */,
+	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(1..1023)) */,
 	0, 0	/* No PER value map */
 };
+
 static asn_TYPE_member_t asn_MBR_V2XBufferPacketDelaysList_3[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
@@ -87,15 +65,21 @@ static asn_TYPE_member_t asn_MBR_V2XBufferPacketDelaysList_3[] = {
 		"v2XBufferPacketDelays"
 		},
 };
+
+
 static const ber_tlv_tag_t asn_DEF_V2XBufferPacketDelaysList_tags_3[] = {
 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
+
 static asn_SET_OF_specifics_t asn_SPC_V2XBufferPacketDelaysList_specs_3 = {
 	sizeof(struct V2XAllBufferPacketDelays__V2XBufferPacketDelaysList),
 	offsetof(struct V2XAllBufferPacketDelays__V2XBufferPacketDelaysList, _asn_ctx),
 	0,	/* XER encoding is XMLDelimitedItemList */
 };
+
+
+
 static /* Use -fall-defs-global to expose */
 asn_TYPE_descriptor_t asn_DEF_V2XBufferPacketDelaysList_3 = {
 	"V2XBufferPacketDelaysList",
@@ -130,15 +114,26 @@ asn_TYPE_member_t asn_MBR_V2XAllBufferPacketDelays_1[] = {
 		0,
 		{ 0, &asn_PER_memb_V2XBufferPacketDelaysList_constr_3,  memb_V2XBufferPacketDelaysList_constraint_1 },
 		0, 0, /* No default value */
-		"V2XBufferPacketDelaysList"
+		"v2XBufferPacketDelaysList"
 		},
+	// { ATF_NOFLAGS, 0, offsetof(struct V2XAllBufferPacketDelays, userReceivedSciMessages),
+	// 	(ASN_TAG_CLASS_CONTEXT | (3 << 2)),
+	// 	-1,	/* EXPLICIT tag at current level */
+	// 	&asn_DEF_V2XSciMessageItemList,
+	// 	0,
+	// 	{ 0, 0, 0 },
+	// 	0, 0, /* No default value */
+	// 	"userReceivedSciMessages"
+	// 	},
+	
 };
 static const ber_tlv_tag_t asn_DEF_V2XAllBufferPacketDelays_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static const asn_TYPE_tag2member_t asn_MAP_V2XAllBufferPacketDelays_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* v2xNodeId */
-    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 } /* V2XBufferPacketDelaysList */
+    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 }, /* V2XBufferPacketDelaysList */
+	// { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 } /* xPosition */
 };
 asn_SEQUENCE_specifics_t asn_SPC_V2XAllBufferPacketDelays_specs_1 = {
 	sizeof(struct V2XAllBufferPacketDelays),
@@ -148,6 +143,14 @@ asn_SEQUENCE_specifics_t asn_SPC_V2XAllBufferPacketDelays_specs_1 = {
 	0, 0, 0,	/* Optional elements (not needed) */
 	2,	/* First extension addition */
 };
+// asn_SEQUENCE_specifics_t asn_SPC_V2XAllBufferPacketDelays_specs_1 = {
+// 	sizeof(struct V2XAllBufferPacketDelays),
+// 	offsetof(struct V2XAllBufferPacketDelays, _asn_ctx),
+// 	asn_MAP_V2XAllBufferPacketDelays_tag2el_1,
+// 	3,	/* Count of tags in the map */
+// 	0, 0, 0,	/* Optional elements (not needed) */
+// 	3,	/* First extension addition */
+// };
 asn_TYPE_descriptor_t asn_DEF_V2XAllBufferPacketDelays = {
 	"V2XAllBufferPacketDelays",
 	"V2XAllBufferPacketDelays",

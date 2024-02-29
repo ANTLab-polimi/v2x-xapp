@@ -1,6 +1,7 @@
 from transform_xml_to_dict_v2x import MillicarUeSingleReport
 from typing import List, Tuple
 import numpy as np
+import logging
 from more_itertools import locate
 
 # in this file the preoptimization procedure shall be defined
@@ -81,6 +82,9 @@ class V2XPreScheduling:
     # set _is_data_updated as true
     def _update_preoptimization_data(self, ue_id: int=-1, single_report:MillicarUeSingleReport = None):
         _ue_preopt_item = self._get_user_preopt(ue_id)
+        logger = logging.getLogger('')
+        # logger.debug("_update_preoptimization_data")
+        # logger.debug(single_report)
         if _ue_preopt_item is None:
             # user does not exist, thus we need to insert it
             _new_ue_preopt_item = UserPreoptimization(ue_id=ue_id)
@@ -114,7 +118,7 @@ class V2XPreScheduling:
 
     # get single user Preopt class instance
     def _get_user_preopt(self, ue_id: int=-1) -> UserPreoptimization:
-        _ue_id_list = list(filter(lambda _user_preopt: _user_preopt.ue_id == ue_id), self._single_user_preopt_list)
+        _ue_id_list = list(filter(lambda _user_preopt: _user_preopt.ue_id == ue_id, self._single_user_preopt_list))
         if len(_ue_id_list)==0:
             return None
         else:

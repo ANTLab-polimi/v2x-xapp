@@ -67,6 +67,10 @@
         "variant": "cpp",
         "cassert": "cpp",
         "v2x-scheduling-source.h": "c",
-        "e2sm-rc-controlmessage-format1.h": "c"
+        "e2sm-rc-controlmessage-format1.h": "c",
+        "v2xbufferpacketdelays.h": "c",
+        "nativereal.h": "c",
+        "v2xallbufferpacketdelays.h": "c",
+        "v2xscimessageitem-list.h": "c"
     }
 }

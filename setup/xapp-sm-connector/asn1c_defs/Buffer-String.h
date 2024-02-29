@@ -31,8 +31,6 @@ ber_type_decoder_f Buffer_String_decode_ber;
 der_type_encoder_f Buffer_String_encode_der;
 xer_type_decoder_f Buffer_String_decode_xer;
 xer_type_encoder_f Buffer_String_encode_xer;
-oer_type_decoder_f Buffer_String_decode_oer;
-oer_type_encoder_f Buffer_String_encode_oer;
 per_type_decoder_f Buffer_String_decode_uper;
 per_type_encoder_f Buffer_String_encode_uper;
 per_type_decoder_f Buffer_String_decode_aper;

@@ -13,7 +13,7 @@
 // 	-1	/* (SIZE(0..1023)) */};
 asn_per_constraints_t asn_PER_type_V2XAllUsersBufferDelayReports_constr_1 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(0..16)) */,
+	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(0..16)) */,
 	0, 0	/* No PER value map */
 };
 asn_TYPE_member_t asn_MBR_V2XAllUsersBufferDelayReports_1[] = {
@@ -24,7 +24,7 @@ asn_TYPE_member_t asn_MBR_V2XAllUsersBufferDelayReports_1[] = {
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */
-		""
+		"allUsersBufferDelayReports"
 		},
 };
 static const ber_tlv_tag_t asn_DEF_V2XAllUsersBufferDelayReports_tags_1[] = {

@@ -100,14 +100,14 @@ class V2XFormulation:
             # _tuple[3] is reservation period and _tuple[2] is head of line
             self._all_buffer_status.sort(key=lambda _tuple: _tuple[3] -  _tuple[2]) 
             self._buffer_served = [False]*len(self._all_buffer_status)
-            self._needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(_buffer_status_tuple[UserPreoptimization.BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._all_buffer_status]
+            self._needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(self.mcs, _buffer_status_tuple[UserPreoptimization.BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._all_buffer_status]
             self._needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._needed_rbs_per_buffer]
             self._served_symbols_per_buffer = [0]*len(self._needed_symbols_per_buffer)
             self._buffer_being_served_ind = 0
             # harq buffer
             self._harq_buffer_status = self.preoptimize.get_all_users_harq_buffer_status()
             self._harq_buffer_served = [False]*len(self._harq_buffer_status)
-            self._harq_needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(_buffer_status_tuple[UserPreoptimization.HARQ_BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._harq_buffer_status]
+            self._harq_needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(self.mcs, _buffer_status_tuple[UserPreoptimization.HARQ_BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._harq_buffer_status]
             self._harq_needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._harq_needed_rbs_per_buffer]
             self._harq_served_symbols_per_buffer = [0]*len(self._harq_needed_symbols_per_buffer)
             self._harq_buffer_being_served_ind = 0

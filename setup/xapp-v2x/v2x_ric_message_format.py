@@ -275,7 +275,7 @@ class SourceUserScheduling:
                                             _dest_sched_str + "," + \
                                             _user_sched_str + "," + \
                                             _rlc_pdu_str
-                        file.write(str(time.time())+ "," + plmn + "," + _single_row_str)
+                        file.write(str(time.time())+ "," + plmn + "," + _single_row_str + "\n")
                         
 
     

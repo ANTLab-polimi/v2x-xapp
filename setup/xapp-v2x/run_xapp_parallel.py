@@ -97,7 +97,8 @@ def _check_ric_commands_to_be_sent(send_callback):
 
             # the data that should be sent to the send callback should be the list of source user scheduling
             v2x_scheduling_all_users: List[SourceUserScheduling] = []
-            send_callback(v2x_scheduling_all_users, str(_plmn))
+            if send_callback is not None:
+                send_callback(v2x_scheduling_all_users, str(_plmn))
             _shared_list_ric_command[_ric_command_ind] = ""
 
 def create_or_reset_shareable_memory():
@@ -144,8 +145,8 @@ def add_sample_data_for_optimization():
             _data_str = str(file.readline())
             _data_dict = eval(eval(_data_str))
             _data_dict['time'] = time.time()
-            _plmn_ind = int(_data_dict['plmn']) - 111
-            print("Adding plmn data " + str(int(_data_dict['plmn'])))
+            _plmn_ind = int(_data_dict[transform._JSON_PLMN]) - 111
+            print("Adding plmn data " + str(int(_data_dict[transform._JSON_PLMN])))
             _shared_list_data[_plmn_ind] = str(_data_dict)
             _shared_list_data_updated[_plmn_ind]=True
             _shared_list_ric_command[_plmn_ind]=""
@@ -153,6 +154,7 @@ def add_sample_data_for_optimization():
 def _check_optimization_to_be_executed()->List[dict]:
     _l_to_be_optimized = []
     # print("Check optimization")
+    logger = logging.getLogger('')
     try:
         # we see to search for it
         _shared_list_data_updated = shm.ShareableList(name="data_updated")
@@ -164,7 +166,9 @@ def _check_optimization_to_be_executed()->List[dict]:
         for _ind, _elem in enumerate(_shared_list_data_updated):
             if _elem & (not _shared_list_being_optimized[_ind]):
                 _data = eval(_shared_list_data[_ind])
-                print(_data['plmn'], end=" ")
+                # logger.debug("Data in _check_optimization_to_be_executed")
+                # logger.debug(_data)
+                print(_data[transform._JSON_PLMN], end=" ")
                 _l_to_be_optimized.append(_data)
                 # set the data not updated , since we put it in the queue to optimize
                 _shared_list_being_optimized[_ind] = True
@@ -182,6 +186,9 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     # _shared_list_data_updated = shm.ShareableList(name="data_updated")
     _shared_list_ric_command = shm.ShareableList(name="ric_commands")
     # _shared_list_data = shm.ShareableList(name="data")
+    # logger = logging.getLogger('demo')
+    logger = logging.getLogger('')
+    logger.info(f"Scheduling main func {plmn}")
     frame = 0
     subframe = 0
     _plmn = plmn
@@ -206,8 +213,8 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
         if _block_queue:
             _data = queue.get()
             _block_queue = False
-            print("Data typy coming from queue")
-            print(_data)
+            # logger.debug("Data type coming from queue")
+            # logger.debug(_data)
             # here are the data coming from quueu
             # we update the v2x scheduling and sync to the new frame
             # if _data is not None:
@@ -243,6 +250,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             v2x_source_scheduling_all_users = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
+            logger.info("Data scheduled")
             # write data to the file
             for _source_sched in v2x_source_scheduling_all_users:
                 _source_sched.write_data_to_file(plmn=_plmn)
@@ -272,16 +280,20 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
 
 def recreate_report_files():
     with open("/home/traces/ric_messages.txt", 'w') as f:
-        _fields_name_str = SourceUserScheduling.get_field_names()
+        _fields_name_str = SourceUserScheduling.get_field_names() + "\n"
         f.write(_fields_name_str)
+    file = open("/home/traces/data_buffer.txt", mode="wb")
+    file.close()
 
-def handle_optimization_thread():
+def handle_optimization_thread(is_test_mode: bool=False):
     # in total we define 50 queues for 50 simulation instances at max we can run in a server
     # the queues shall hold the data of _shared_list_data shareble list and new data coming
     # and inserted in the _all_queues shall trigger the _scheduling_main_func to trigger 
     # its execution
     # recreate the report files
-    recreate_report_files()
+    if (not is_test_mode):
+        # in test mode we do not want to delete the received reports before
+        recreate_report_files()
 
     _all_queues = [mp.Queue() for _ in range(2)]
     _all_preopt_objs = [V2XPreScheduling() for _ in range(len(_all_queues))]
@@ -289,9 +301,9 @@ def handle_optimization_thread():
     
     _all_processes = [mp.Process(target=_scheduling_main_func, 
                                  args=(_all_queues[_ind], 
-                                       _all_preopt_objs[_ind],
                                        _all_sched_objs[_ind],
-                                       str(_ind + 111),)) for _ind in range(50)]
+                                       _all_preopt_objs[_ind],
+                                       str(_ind + 111),)) for _ind in range(len(_all_queues))]
     _nr_active_processes = len(_all_processes)
     for _process in _all_processes[:_nr_active_processes]:
         _process.start()
@@ -304,6 +316,7 @@ def handle_optimization_thread():
             # we put data to the queue
             # distribute among initialized processes by putting data in the queue
             print("Queue size per plmn ", end="")
+
             for _v_ind, _v_to_be_optimized in enumerate(_l_to_be_optimized_sorted):
                 _plmn = _v_to_be_optimized[transform._JSON_PLMN]
                 _plmn_ind = int(_plmn) - 111
@@ -313,24 +326,45 @@ def handle_optimization_thread():
                 print(str((_plmn, _queue.qsize())), end=" ")
             print()
         sleep(2)
-        
 
-def main():
-    _report_filename = "/home/ef-xapp/report.csv"
-    # configure logger and console output
+def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, _transform_list: List[XmlToDictManager]):
+    # logging.info('Received data: ' + msg)
+    _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(msg)
+    # print("Plmn id of the sender " + str(_plmn_id))
+    if (_plmn_id!= -1) & (_cell_id!= -1)& (_collection_time!= -1):
+        # find the right manager to parse data 
+        _xml_manager_filter: List[XmlToDictManager] = list(filter(lambda _xmlManager: _xmlManager.plmn == _plmn_id, _transform_list))
+        # either there exist a manager, so the filter gives only 1 element
+        if len(_xml_manager_filter) == 1:
+            _transform: XmlToDictManager = _xml_manager_filter[0]
+        else:
+            # we insert a new manager 
+            _transform = XmlToDictManager(msg_encoder, _plmn_id)
+            _transform_list.append(_transform)
+        _transform.transform.parse_incoming_data(msg)
+
+def setup_logger():
     logging_filename = os.path.join(os.getcwd(), 'report.log')
     # logging_filename = '/home/ef-xapp/xapp-logger.log' # os.path.join(os.getcwd(), )
     logging.basicConfig(level=logging.DEBUG, filename=logging_filename, filemode='a',
                         format='%(asctime)-15s %(levelname)-8s %(message)s')
+    
     logger = logging.getLogger('')
     # logger.handlers.clear()
     # to avoid propagating logger to root
-    logger.propagate = False
+    # logger.propagate = False
     formatter = logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s')
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(logging.DEBUG)
     console.setFormatter(formatter)
     logger.addHandler(console)
+
+    
+def main():
+    _report_filename = "/home/ef-xapp/report.csv"
+    # configure logger and console output
+    setup_logger()
+    logger = logging.getLogger('')
 
     # Create the pickle file for data reports
     for _plmn in range(110, 180):
@@ -354,7 +388,8 @@ def main():
     # # create the deamon thread for message handling
     print("Starting the handler of optimization threads")
     logger.debug("Starting the handler")
-    _msg_handling_thread = Thread(name="optimization", target=handle_optimization_thread, daemon=True)
+    _msg_handling_thread = Thread(name="optimization", target=handle_optimization_thread, 
+                                  args=(False,), daemon=True)
     _msg_handling_thread.start()
 
     control_sck = open_control_socket(4200)
@@ -383,39 +418,14 @@ def main():
             # appending the data to the tranformer
             if isinstance(data_sck, list):
                 for _msg in data_sck:
-                    print("Received data")
-                    print(_msg)
-                    # logging.info('Received data: ' + _msg)
-                    _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(_msg)
-                    # print("Plmn id of the sender " + str(_plmn_id))
-                    if (_plmn_id!= -1) & (_cell_id!= -1)& (_collection_time!= -1):
-                        # find the right manager to parse data 
-                        _xml_manager_filter: List[XmlToDictManager] = list(filter(lambda _xmlManager: _xmlManager.plmn == _plmn_id, _transform_list))
-                        # either there exist a manager, so the filter gives only 1 element
-                        if len(_xml_manager_filter) == 1:
-                            _xml_manager_filter[0].transform.parse_incoming_data(_msg)
-                        else:
-                            # we insert a new manager 
-                            _transform = XmlToDictManager(_msg_encoder, _plmn_id)
-                            _transform.transform.parse_incoming_data(_msg)
-                            _transform_list.append(_transform)
-                            
+                    # print("Received data")
+                    # print(_msg)
+                    parse_xml_msg(_msg, _msg_encoder, _transform_list)
             else:
-                # logging.info('Received data: ' + data_sck)
-                _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(data_sck)
-                if (_plmn_id!= -1) & (_cell_id!= -1)& (_collection_time!= -1):
-                    # find the right manager to parse data 
-                    _xml_manager_filter = list(filter(lambda _xmlManager: _xmlManager.plmn == _plmn_id,_transform_list))
-                    # either there exist a manager, so the filter gives only 1 element
-                    if len(_xml_manager_filter) == 1:
-                        _xml_manager_filter[0].transform.parse_incoming_data(data_sck)
-                    else:
-                        # we insert a new manager 
-                        _transform = XmlToDictManager(_msg_encoder, _plmn_id)
-                        _transform.transform.parse_incoming_data(data_sck)
-                        _transform_list.append(_transform)
+                parse_xml_msg(data_sck, _msg_encoder, _transform_list)
             # here we send data to the right sharable list which will be used afterwards for scheduling
             for _transform in _transform_list:
+                logging.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
                 if _transform.transform.has_received_all_reports():
                     # insert in queue
                     # update data from the preoptimization 
@@ -428,6 +438,8 @@ def main():
                         transform._JSON_SLOT: _transform.transform.slot ,
                         'buffer_status': _transform.transform.to_dict()
                     }
+                    logging.info(f"Data inserted in the queue: ")
+                    logging.info(_data)
                     _plmn_ind = int(_transform.plmn) - 111
                     _shared_list_data[_plmn_ind] = str(_data)
                     _shared_list_data_updated[_plmn_ind] = True
@@ -435,6 +447,78 @@ def main():
         # generate and send data    
         _check_ric_commands_to_be_sent(_send_encoded_data_func)
 
+
+
+def test_schedule_working():
+    setup_logger()
+    logger = logging.getLogger('')
+    _msg_encoder = RicControlMessageEncoder()
+    _list_received_msgs: List[str] = []
+    _transform_list: List[XmlToDictManager] = []
+    create_or_reset_shareable_memory()
+    create_or_reset_shareable_memory()
+    _shared_list_data = shm.ShareableList(name="data")
+    _shared_list_data_updated = shm.ShareableList(name="data_updated")
+    logger.debug("Starting the handler")
+    _msg_handling_thread = Thread(name="optimization", target=handle_optimization_thread, 
+                                  args=(True,), daemon=True)
+    _msg_handling_thread.start()
+    # _send_encoded_data_func = send_optimized_data(control_sck, _msg_encoder)
+    with open("/home/traces/data_buffer.txt", mode="rb+") as file:
+        _data_list = file.readlines()
+        _data = b''.join(_data_list)
+    
+    _all_data_length = len(_data)
+    logger.debug(f"Data length {_all_data_length}")
+    _total_bytes_consumed = 0
+    _nr_msg_read = 0
+    _nr_min_msg_print = 0
+    _nr_max_msg_print = 4
+    while(_total_bytes_consumed < _all_data_length):
+        _data_buffer, _data_length, _bytes_consumed =  _msg_encoder.decode_e2ap_ric_indication_msg(_data[_total_bytes_consumed:])
+        # print(f"data legnth {_data_length} and bytes consumed {_bytes_consumed}")
+        if _data_buffer is not None:
+            _nr_msg_read+=1
+            _total_bytes_consumed+=_bytes_consumed
+            logger.debug(f"Message read {_nr_msg_read} total bytes consumed {_total_bytes_consumed} ")
+            _decoded_msg = _data_buffer.decode('utf-8')
+            _list_received_msgs.append(_decoded_msg)
+            # if _nr_msg_read>=_nr_min_msg_print:
+            #     print(_decoded_msg)
+            if _nr_msg_read>=_nr_max_msg_print:
+                break
+    # print("Checing the received reports")
+    for _msg in _list_received_msgs:
+        # print("Received data")
+        # print(_msg)
+        parse_xml_msg(_msg, _msg_encoder, _transform_list)
+
+        # print(f"size of tranform list {len(_transform_list)}")
+        # print(_transform_list[0].transform.to_dict())
+        for _transform in _transform_list:
+            print(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
+            if _transform.transform.has_received_all_reports():
+                # insert in queue
+                # update data from the preoptimization 
+                _time_int = int(time.time())
+                _data = {
+                    'time': _time_int,
+                    transform._JSON_PLMN: _transform.plmn,
+                    transform._JSON_FRAME: _transform.transform.frame ,
+                    transform._JSON_SUBFRAME: _transform.transform.subframe ,
+                    transform._JSON_SLOT: _transform.transform.slot ,
+                    'buffer_status': _transform.transform.to_dict()
+                }
+                logging.info(f"Data inserted in the queue: ")
+                # logging.info(_data)
+                _plmn_ind = int(_transform.plmn) - 111
+                _shared_list_data[_plmn_ind] = str(_data)
+                _shared_list_data_updated[_plmn_ind] = True
+                _transform.transform.reset()
+    # generate and send data    
+    _check_ric_commands_to_be_sent(None)
+
+
 if __name__ == '__main__':
-    main()
-    # data_length, data_bytes = _msg_encoder.encode_result_plmn(ue_ids, initial_assignment, optimized_assignment, plmn)
+    test_schedule_working()
+    # main()

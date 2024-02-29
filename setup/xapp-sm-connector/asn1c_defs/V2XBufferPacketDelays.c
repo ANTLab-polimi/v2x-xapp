@@ -64,9 +64,8 @@ memb_V2XHarqBufferSizeList_constraint_1(const asn_TYPE_descriptor_t *td, const v
 }
 
 
-
 // static asn_oer_constraints_t asn_OER_type_v2XPacketDelayIntervalList_constr_3 CC_NOTUSED = {
-// 	{ 0, 0 },
+// 	{ 2, 0 },
 // 	-1	/* (SIZE(1..64)) */};
 static asn_per_constraints_t asn_PER_type_v2XPacketDelayIntervalList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
@@ -74,7 +73,7 @@ static asn_per_constraints_t asn_PER_type_v2XPacketDelayIntervalList_constr_3 CC
 	0, 0	/* No PER value map */
 };
 // static asn_oer_constraints_t asn_OER_memb_v2XPacketDelayIntervalList_constr_3 CC_NOTUSED = {
-// 	{ 0, 0 },
+// 	{ 2, 0 },
 // 	-1	/* (SIZE(1..64)) */};
 static asn_per_constraints_t asn_PER_memb_v2XPacketDelayIntervalList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
@@ -99,6 +98,7 @@ static asn_per_constraints_t asn_PER_memb_V2XHarqBufferSizeList_constr_3 CC_NOTU
 	0, 0	/* No PER value map */
 };
 
+
 static asn_TYPE_member_t asn_MBR_v2XPacketDelayIntervalList_3[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
@@ -107,7 +107,7 @@ static asn_TYPE_member_t asn_MBR_v2XPacketDelayIntervalList_3[] = {
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */
-		"V2XPacketDelayIntervalList"
+		"v2XPacketDelayIntervalList"
 		},
 };
 
@@ -119,7 +119,7 @@ static asn_TYPE_member_t asn_MBR_V2XHarqBufferSizeList_3[] = {
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */
-		"V2XHarqBufferSizeList"
+		"v2XHarqBufferSizeList"
 		},
 };
 
@@ -145,10 +145,11 @@ static asn_SET_OF_specifics_t asn_SPC_V2XHarqBufferSizeList_specs_3 = {
 	0,	/* XER encoding is XMLDelimitedItemList */
 };
 
+
 static /* Use -fall-defs-global to expose */
 asn_TYPE_descriptor_t asn_DEF_v2XPacketDelayIntervalList_3 = {
-	"v2XPacketDelayIntervalList",
-	"v2XPacketDelayIntervalList",
+	"V2XPacketDelayIntervalList",
+	"V2XPacketDelayIntervalList",
 	&asn_OP_SEQUENCE_OF,
 	asn_DEF_v2XPacketDelayIntervalList_tags_3,
 	sizeof(asn_DEF_v2XPacketDelayIntervalList_tags_3)
@@ -164,8 +165,8 @@ asn_TYPE_descriptor_t asn_DEF_v2XPacketDelayIntervalList_3 = {
 
 static /* Use -fall-defs-global to expose */
 asn_TYPE_descriptor_t asn_DEF_V2XHarqBufferSizeList_3 = {
-	"v2XHarqBufferSizeList",
-	"v2XHarqBufferSizeList",
+	"V2XHarqBufferSizeList",
+	"V2XHarqBufferSizeList",
 	&asn_OP_SEQUENCE_OF,
 	asn_DEF_V2XHarqBufferSizeList_tags_3,
 	sizeof(asn_DEF_V2XHarqBufferSizeList_tags_3)
@@ -198,14 +199,14 @@ asn_TYPE_member_t asn_MBR_V2XBufferPacketDelays_1[] = {
 		0, 0, /* No default value */
 		"v2XPacketDelayIntervalList"
 		},
-	{ ATF_NOFLAGS, 0, offsetof(struct V2XBufferPacketDelays, V2XHarqBufferSizeList),
+	{ ATF_NOFLAGS, 0, offsetof(struct V2XBufferPacketDelays, v2XHarqBufferSizeList),
 		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
 		0,
 		&asn_DEF_V2XHarqBufferSizeList_3,
 		0,
 		{ 0, &asn_PER_memb_V2XHarqBufferSizeList_constr_3,  memb_V2XHarqBufferSizeList_constraint_1 },
 		0, 0, /* No default value */
-		"V2XHarqBufferSizeList"
+		"v2XHarqBufferSizeList"
 		},
 };
 static const ber_tlv_tag_t asn_DEF_V2XBufferPacketDelays_tags_1[] = {
@@ -214,7 +215,7 @@ static const ber_tlv_tag_t asn_DEF_V2XBufferPacketDelays_tags_1[] = {
 static const asn_TYPE_tag2member_t asn_MAP_V2XBufferPacketDelays_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* v2xNodeId */
     { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 }, /* v2XPacketDelayIntervalList */
-	{ (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 1, 0, 0 } /* V2XHarqBufferSizeList */
+	{ (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 } /* V2XHarqBufferSizeList */
 };
 asn_SEQUENCE_specifics_t asn_SPC_V2XBufferPacketDelays_specs_1 = {
 	sizeof(struct V2XBufferPacketDelays),

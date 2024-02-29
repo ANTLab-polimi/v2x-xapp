@@ -8,15 +8,49 @@
 #include "V2XSciMessageItem-List.h"
 #include "V2XSciMessageItem.h"
 
-// static asn_oer_constraints_t asn_OER_type_V2XSciMessageItemList_constr_1 CC_NOTUSED = {
+static int
+memb_V2XSciMessageSingleItem_constraint_1(const asn_TYPE_descriptor_t *td, const void *sptr,
+			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
+	size_t size;
+	
+	if(!sptr) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value not given (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	/* Determine the number of elements */
+	size = _A_CSEQUENCE_FROM_VOID(sptr)->count;
+	
+	if((size >= 0 && size <= 65535)) {
+		/* Perform validation of the inner elements */
+		return td->encoding_constraints.general_constraints(td, sptr, ctfailcb, app_key);
+	} else {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: constraint failed (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+}
+
+// static asn_oer_constraints_t asn_OER_type_V2XSciMessageSingleItem_constr_2 CC_NOTUSED = {
 // 	{ 2, 0 },
-// 	-1	/* (SIZE(0..1023)) */};
-asn_per_constraints_t asn_PER_type_V2XSciMessageItemList_constr_1 CC_NOTUSED = {
+// 	-1	/* (SIZE(1..1024)) */};
+static asn_per_constraints_t asn_PER_type_V2XSciMessageSingleItem_constr_2 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(0..1023)) */,
+	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(1..1024)) */,
 	0, 0	/* No PER value map */
 };
-asn_TYPE_member_t asn_MBR_V2XSciMessageItemList_1[] = {
+// static asn_oer_constraints_t asn_OER_memb_V2XSciMessageSingleItem_constr_2 CC_NOTUSED = {
+// 	{ 2, 0 },
+// 	-1	/* (SIZE(1..1024)) */};
+static asn_per_constraints_t asn_PER_memb_V2XSciMessageSingleItem_constr_2 CC_NOTUSED = {
+	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
+	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(1..1024)) */,
+	0, 0	/* No PER value map */
+};
+static asn_TYPE_member_t asn_MBR_V2XSciMessageSingleItem_2[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
@@ -27,25 +61,72 @@ asn_TYPE_member_t asn_MBR_V2XSciMessageItemList_1[] = {
 		""
 		},
 };
+
+static const ber_tlv_tag_t asn_DEF_V2XSciMessageSingleItem_tags_2[] = {
+	(ASN_TAG_CLASS_CONTEXT | (0 << 2)),
+	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
+};
+static asn_SET_OF_specifics_t asn_SPC_V2XSciMessageSingleItem_specs_2 = {
+	sizeof(struct V2XSciMessageItemList__V2XSciMessageSingleItem),
+	offsetof(struct V2XSciMessageItemList__V2XSciMessageSingleItem, _asn_ctx),
+	0,	/* XER encoding is XMLDelimitedItemList */
+};
+static /* Use -fall-defs-global to expose */
+asn_TYPE_descriptor_t asn_DEF_V2XSciMessageSingleItem_2 = {
+	"V2XSciMessageSingleItem",
+	"V2XSciMessageSingleItem",
+	&asn_OP_SEQUENCE_OF,
+	asn_DEF_V2XSciMessageSingleItem_tags_2,
+	sizeof(asn_DEF_V2XSciMessageSingleItem_tags_2)
+		/sizeof(asn_DEF_V2XSciMessageSingleItem_tags_2[0]) - 1, /* 1 */
+	asn_DEF_V2XSciMessageSingleItem_tags_2,	/* Same as above */
+	sizeof(asn_DEF_V2XSciMessageSingleItem_tags_2)
+		/sizeof(asn_DEF_V2XSciMessageSingleItem_tags_2[0]), /* 2 */
+	// { &asn_OER_type_V2XSciMessageSingleItem_constr_2, &asn_PER_type_V2XSciMessageSingleItem_constr_2, SEQUENCE_OF_constraint },
+	{ 0, &asn_PER_type_V2XSciMessageSingleItem_constr_2, SEQUENCE_OF_constraint },
+	asn_MBR_V2XSciMessageSingleItem_2,
+	1,	/* Single element */
+	&asn_SPC_V2XSciMessageSingleItem_specs_2	/* Additional specs */
+};
+
+asn_TYPE_member_t asn_MBR_V2XSciMessageItemList_1[] = {
+	{ ATF_NOFLAGS, 0, offsetof(struct V2XSciMessageItemList, v2XSciMessageSingleItem),
+		(ASN_TAG_CLASS_CONTEXT | (0 << 2)),
+		0,
+		&asn_DEF_V2XSciMessageSingleItem_2,
+		0,
+		// { &asn_OER_memb_V2XSciMessageSingleItem_constr_2, &asn_PER_memb_V2XSciMessageSingleItem_constr_2,  memb_V2XSciMessageSingleItem_constraint_1 },
+		{ 0, 0,  memb_V2XSciMessageSingleItem_constraint_1 },
+		0, 0, /* No default value */
+		"v2XSciMessageSingleItem"
+		},
+};
 static const ber_tlv_tag_t asn_DEF_V2XSciMessageItemList_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
-asn_SET_OF_specifics_t asn_SPC_V2XSciMessageItemList_specs_1 = {
+static const asn_TYPE_tag2member_t asn_V2XSciMessageItemList_tag2el_1[] = {
+    { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 } /* slicePerPlmnPerCellList */
+};
+
+asn_SEQUENCE_specifics_t asn_SPC_V2XSciMessageItemList_specs_1 = {
 	sizeof(struct V2XSciMessageItemList),
 	offsetof(struct V2XSciMessageItemList, _asn_ctx),
-	0,	/* XER encoding is XMLDelimitedItemList */
+	asn_V2XSciMessageItemList_tag2el_1,
+	1,	/* Count of tags in the map */
+	0, 0, 0,	/* Optional elements (not needed) */
+	1,	/* First extension addition */
 };
 asn_TYPE_descriptor_t asn_DEF_V2XSciMessageItemList = {
 	"V2XSciMessageItemList",
 	"V2XSciMessageItemList",
-	&asn_OP_SEQUENCE_OF,
+	&asn_OP_SEQUENCE,
 	asn_DEF_V2XSciMessageItemList_tags_1,
 	sizeof(asn_DEF_V2XSciMessageItemList_tags_1)
 		/sizeof(asn_DEF_V2XSciMessageItemList_tags_1[0]), /* 1 */
 	asn_DEF_V2XSciMessageItemList_tags_1,	/* Same as above */
 	sizeof(asn_DEF_V2XSciMessageItemList_tags_1)
 		/sizeof(asn_DEF_V2XSciMessageItemList_tags_1[0]), /* 1 */
-	{ 0, &asn_PER_type_V2XSciMessageItemList_constr_1, SEQUENCE_OF_constraint },
+	{ 0, 0, SEQUENCE_constraint },
 	asn_MBR_V2XSciMessageItemList_1,
 	1,	/* Single element */
 	&asn_SPC_V2XSciMessageItemList_specs_1	/* Additional specs */

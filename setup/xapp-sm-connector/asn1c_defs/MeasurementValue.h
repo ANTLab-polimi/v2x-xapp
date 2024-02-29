@@ -29,12 +29,12 @@ typedef enum MeasurementValue_PR {
 	MeasurementValue_PR_valueInt,
 	MeasurementValue_PR_valueReal,
 	MeasurementValue_PR_noValue,
+	MeasurementValue_PR_valueV2XSingleUserReport,
 	MeasurementValue_PR_valueRRC,
 	// modified
 	MeasurementValue_PR_valueOctetString,
 	// MeasurementValue_PR_valueV2XBufferDelay,
 	// MeasurementValue_PR_valueV2XSciMessages
-	MeasurementValue_PR_valueV2XSingleUserReport
 	// end modification
 	/* Extensions may appear below */
 	
@@ -55,8 +55,6 @@ typedef struct MeasurementValue {
 		NULL_t	 noValue;
 		struct L3_RRC_Measurements	*valueRRC;
 		// modified
-		// OCTET_STRING_t *valueOctetString;
-		// Buffer_String_t *valueOctetString;
 		Buffer_String_t valueOctetString;
 		// struct V2XAllUsersBufferDelayReports *valueV2XBufferDelay;
 		// struct V2XSciMessageItemList *valueV2XSciMessages;

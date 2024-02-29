@@ -183,6 +183,11 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
     E2AP_PDU_t *pdu = (E2AP_PDU_t * )calloc(1, sizeof(E2AP_PDU_t));
     uint8_t* buff = (uint8_t *) calloc(1, buffSize);
     memcpy(buff, buffer, buffSize);
+    // std::cout << "Buffer print" <<std::endl;
+    // for(int i=0; i<buffSize; ++i){
+    //     std::cout << std::hex << (int)buff[i];
+    // }
+    // std::cout << std::endl;
     InitiatingMessage_t* initMsg; 
     e2ap_stcp_buffer* data = (e2ap_stcp_buffer *) calloc(1, sizeof(e2ap_stcp_buffer));
     tinyxml2::XMLDocument pduDoc;
@@ -191,31 +196,40 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
     // printf("Buffer %s \n", buff);
 	auto retval = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2AP_PDU, (void **) &pdu, (void *)buff, buffSize);
 	// auto retval = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2AP_PDU, (void **) &pdu, buffer, buffSize);
+    // std::cout << "priting the E2AP_PDU_t" << std::endl;
+    // xer_fprint(stdout, &asn_DEF_E2AP_PDU, pdu);
     uint8_t idx;
     if (retval.code == RC_OK) {
         // printf("Bytes consumed %s ", std::to_string(retval.consumed).c_str());
         if(pdu->present == E2AP_PDU_PR_initiatingMessage){
-            initMsg = pdu->choice.initiatingMessage;
-            RICindication_t* ricIndication = &initMsg->value.choice.RICindication;
+            initMsg = (InitiatingMessage_t *)pdu->choice.initiatingMessage;
+            RICindication_t* ricIndication = (RICindication_t *)&initMsg->value.choice.RICindication;
             for (idx = 0; idx < ricIndication->protocolIEs.list.count; idx++)
             {
-                switch(ricIndication->protocolIEs.list.array[idx]->id)
+                
+                RICindication_IEs *ie = ricIndication->protocolIEs.list.array [idx];
+                // std::cout << "Id of array " << ie->value.present << std::endl;
+                switch(ie->value.present)
                 {
-                    case 26:  // RIC indication message
+                    case RICindication_IEs__value_PR_RICindicationMessage:  // RIC indication message
                     {
-                        int payload_size = ricIndication->protocolIEs.list.array[idx]-> \
-                                                    value.choice.RICindicationMessage.size;
+                        int payload_size = ie->value.choice.RICindicationMessage.size;
 
                         char* payload = (char*) calloc(payload_size, sizeof(char));
-                        memcpy(payload, ricIndication->protocolIEs.list.array[idx]-> \
-                                                value.choice.RICindicationMessage.buf, payload_size);
+                        memcpy(payload, ie->value.choice.RICindicationMessage.buf, payload_size);
 
-                        E2SM_KPM_IndicationMessage_t *descriptor = 0;
-                        auto retvalMsgKpm = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2SM_KPM_IndicationMessage, (void **) &descriptor, payload, payload_size);
+                        // E2SM_KPM_IndicationMessage_t *descriptor = 0;
+                        E2SM_KPM_IndicationMessage_t *descriptor = (E2SM_KPM_IndicationMessage_t *) calloc (
+                                                  1, sizeof (E2SM_KPM_IndicationMessage_t));
+                        ASN_STRUCT_RESET(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+                        auto retvalMsgKpm = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2SM_KPM_IndicationMessage, 
+                                            (void **) &descriptor, payload, payload_size);
                         char *printBufferMessage;
                         size_t sizeMessage;
                         FILE *streamMessage = open_memstream(&printBufferMessage, &sizeMessage);
                         xer_fprint(streamMessage, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+                        // std::cout << "priting the ind msg" << std::endl;
+                        // xer_fprint(stdout, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
                         msgDoc.Parse(printBufferMessage);
                         delete streamMessage;
                         delete printBufferMessage;
@@ -223,13 +237,11 @@ decode_e2ap_to_xml(uint8_t* buffer, size_t buffSize){
                         break;
                     }
                     break;
-                    case 25:  // RIC indication header
+                    case RICindication_IEs__value_PR_RICindicationHeader:  // RIC indication header
                     {
-                        int payload_size = ricIndication->protocolIEs.list.array[idx]-> \
-                                                    value.choice.RICindicationHeader.size;
+                        int payload_size = ie->value.choice.RICindicationHeader.size;
                         char* payload = (char*) calloc(payload_size, sizeof(char));
-                        memcpy(payload, ricIndication->protocolIEs.list.array[idx]-> \
-                                                    value.choice.RICindicationHeader.buf, payload_size);
+                        memcpy(payload, ie->value.choice.RICindicationHeader.buf, payload_size);
                         E2SM_KPM_IndicationHeader_t *descriptor = 0;
                         auto retvalMsgKpm = asn_decode(nullptr, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2SM_KPM_IndicationHeader, (void **) &descriptor, payload, payload_size);
                         char *printBufferHeader;
@@ -298,11 +310,7 @@ decode_v2x_sci_header(uint8_t* buffer, size_t buffSize){
     v2x_sci_header_buffer_t* data;
     // std::cout << " entered " << std::endl;
     try{
-        // uint8_t* buff = (uint8_t *) calloc(1, buffSize);
-        // memcpy(buff, buffer, buffSize);
-        // std::string s(buff);
         std::string s((char*) buffer);
-        // std::cout << " the buffer " << s << std::endl;
         // removing white space if there is any
         s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char x) { return std::isspace(x); }), s.end());
         // std::cout << " the buffer with no spaces " << s << std::endl;

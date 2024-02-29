@@ -30,18 +30,36 @@ asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[] = {
 		0, 0, /* No default value */
 		"yPosition"
 		},
-	{ ATF_POINTER, 0, offsetof(struct V2X_Single_User_Report, userBufferDelayList),
+	{ ATF_NOFLAGS, 0, offsetof(struct V2X_Single_User_Report, userBufferDelayList),
 		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
-		+1,	/* EXPLICIT tag at current level */
+		-1,	/* EXPLICIT tag at current level */
 		&asn_DEF_V2XAllBufferPacketDelays,
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */
 		"userBufferDelayList"
 		},
+	// { ATF_NOFLAGS, 0, offsetof(struct V2X_Single_User_Report, userReceivedSciMessages),
+	// 	(ASN_TAG_CLASS_CONTEXT | (3 << 2)),
+	// 	-1,	/* EXPLICIT tag at current level */
+	// 	&asn_DEF_V2XSciMessageItemList,
+	// 	0,
+	// 	{ 0, 0, 0 },
+	// 	0, 0, /* No default value */
+	// 	"userReceivedSciMessages"
+	// 	},
+	// { ATF_POINTER, 1, offsetof(struct V2X_Single_User_Report, userBufferDelayList),
+	// 	(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
+	// 	-1,	/* EXPLICIT tag at current level */
+	// 	&asn_DEF_V2XAllBufferPacketDelays,
+	// 	0,
+	// 	{ 0, 0, 0 },
+	// 	0, 0, /* No default value */
+	// 	"userBufferDelayList"
+	// 	},
 	{ ATF_POINTER, 1, offsetof(struct V2X_Single_User_Report, userReceivedSciMessages),
 		(ASN_TAG_CLASS_CONTEXT | (3 << 2)),
-		+1,	/* EXPLICIT tag at current level */
+		-1,	/* EXPLICIT tag at current level */
 		&asn_DEF_V2XSciMessageItemList,
 		0,
 		{ 0, 0, 0 },
@@ -49,7 +67,7 @@ asn_TYPE_member_t asn_MBR_V2X_Single_User_Report_1[] = {
 		"userReceivedSciMessages"
 		},
 };
-static const int asn_MAP_V2X_Single_User_Report_oms_1[] = { 2, 3 };
+static const int asn_MAP_V2X_Single_User_Report_oms_1[] = { 3 };
 static const ber_tlv_tag_t asn_DEF_V2X_Single_User_Report_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
@@ -59,13 +77,26 @@ static const asn_TYPE_tag2member_t asn_MAP_V2X_Single_User_Report_tag2el_1[] = {
 	{ (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 }, /* xPosition */
 	{ (ASN_TAG_CLASS_CONTEXT | (3 << 2)), 3, 0, 0 }, /* yPosition */
 };
+// asn_SEQUENCE_specifics_t asn_SPC_V2X_Single_User_Report_specs_1 = {
+// 	sizeof(struct V2X_Single_User_Report),
+// 	offsetof(struct V2X_Single_User_Report, _asn_ctx),
+// 	asn_MAP_V2X_Single_User_Report_tag2el_1,
+// 	3,	/* Count of tags in the map */
+// 	// asn_MAP_V2X_Single_User_Repor0t_oms_1,	/* Optional members */
+// 	0,	/* Optional members */
+// 	// 2, 0,	/* Root/Additions */
+// 	0, 0,	/* Root/Additions */
+// 	3,	/* First extension addition */
+// };
 asn_SEQUENCE_specifics_t asn_SPC_V2X_Single_User_Report_specs_1 = {
 	sizeof(struct V2X_Single_User_Report),
 	offsetof(struct V2X_Single_User_Report, _asn_ctx),
 	asn_MAP_V2X_Single_User_Report_tag2el_1,
 	4,	/* Count of tags in the map */
 	asn_MAP_V2X_Single_User_Report_oms_1,	/* Optional members */
-	2, 0,	/* Root/Additions */
+	// 0,	/* Optional members */
+	1, 0,	/* Root/Additions */
+	// 0, 0,	/* Root/Additions */
 	4,	/* First extension addition */
 };
 asn_TYPE_descriptor_t asn_DEF_V2X_Single_User_Report = {
@@ -81,6 +112,7 @@ asn_TYPE_descriptor_t asn_DEF_V2X_Single_User_Report = {
 	{ 0, 0, SEQUENCE_constraint },
 	asn_MBR_V2X_Single_User_Report_1,
 	4,	/* Elements count */
+	// 2,	/* Elements count */
 	&asn_SPC_V2X_Single_User_Report_specs_1	/* Additional specs */
 };
 

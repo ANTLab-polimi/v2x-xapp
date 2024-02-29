@@ -17,6 +17,8 @@
 #include <constr_SEQUENCE_OF.h>
 #include <constr_SEQUENCE.h>
 
+#include "V2XSciMessageItem-List.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +35,8 @@ typedef struct V2XAllBufferPacketDelays {
 		/* Context for parsing across buffer boundaries */
 		asn_struct_ctx_t _asn_ctx;
 	} V2XBufferPacketDelaysList;
+
+	V2XSciMessageItemList_t	userReceivedSciMessages;
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.
@@ -46,6 +50,7 @@ typedef struct V2XAllBufferPacketDelays {
 extern asn_TYPE_descriptor_t asn_DEF_V2XAllBufferPacketDelays;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2XAllBufferPacketDelays_specs_1;
 extern asn_TYPE_member_t asn_MBR_V2XAllBufferPacketDelays_1[2];
+// extern asn_TYPE_member_t asn_MBR_V2XAllBufferPacketDelays_1[3];
 
 #ifdef __cplusplus
 }

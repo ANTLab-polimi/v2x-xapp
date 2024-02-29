@@ -23,9 +23,9 @@ extern "C" {
 
 /* V2XSciMessageItem */
 typedef struct V2XSciMessageItem {
-	Buffer_String_t	header;
-	Buffer_String_t	tag;
 	double rsrp;
+	Buffer_String_t *header;
+	Buffer_String_t	*tag;
 	/*
 	 * This type is extensible,
 	 * possible extensions are below.
@@ -38,7 +38,7 @@ typedef struct V2XSciMessageItem {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_V2XSciMessageItem;
 extern asn_SEQUENCE_specifics_t asn_SPC_V2XSciMessageItem_specs_1;
-extern asn_TYPE_member_t asn_MBR_V2XSciMessageItem_1[3];
+extern asn_TYPE_member_t asn_MBR_V2XSciMessageItem_1[1]; 
 
 #ifdef __cplusplus
 }

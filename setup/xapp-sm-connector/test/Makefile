@@ -47,7 +47,7 @@ LIBS= -lsdl -lrmr_si -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS) # $(GTE
 COV_FLAGS= -fprofile-arcs -ftest-coverage
 
 #######
-TEST_SRC= v2x_scheduling_test.cc hw_unit_tests.cc decoding_test.cc
+TEST_SRC= v2x_scheduling_test.cc hw_unit_tests.cc decoding_test.cc decode_e2ap_pdu_test.cc
 XAPP_SRC= ../src/xapp.cc ../src/agent_connector.cc
 TEST_HDR=$(wildcard $(TEST)/*.h)
 UTIL_SRC= $(wildcard $(UTILSRC)/*.cc)
@@ -114,6 +114,9 @@ decoding_test: $(OBJ)
 v2x_scheduling_test: $(OBJ)
 	$(CXX) -o $@ $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(TINYXMLFLAGS) $(ASNFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)
 
+decode_e2ap_pdu_test: $(OBJ)
+	$(CXX) -o $@ $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(TINYXMLFLAGS) $(ASNFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)
+
 # install: hw_unit_tests decoding_test v2x_scheduling_test
 # 	install  -D hw_unit_tests  /usr/local/bin/hw_unit_tests
 # 	install  -D decoding_test  /usr/local/bin/decoding_test
@@ -122,8 +125,11 @@ v2x_scheduling_test: $(OBJ)
 # install: decoding_test
 # 	install decoding_test  /usr/local/bin/decoding_test
 
-install: v2x_scheduling_test
-	install -D v2x_scheduling_test  /usr/local/bin/v2x_scheduling_test
+# install: v2x_scheduling_test
+# 	install -D v2x_scheduling_test  /usr/local/bin/v2x_scheduling_test
+
+install: decode_e2ap_pdu_test
+	install -D decode_e2ap_pdu_test  /usr/local/bin/decode_e2ap_pdu_test
 
 test: decoding_test
 	./decoding_test
@@ -135,9 +141,12 @@ check: decoding_test
 check_scheduling: v2x_scheduling_test
 	./v2x_scheduling_test
 
+check_e2ap: decode_e2ap_pdu_test
+	./decode_e2ap_pdu_test
+
 clean:
 	-rm *.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MGMTSRC)/*.o $(SRC)/*.o \
 	$(RICCONTROLSRC)/*.o $(NS3DECODESRC)/*.o $(TINYXMLSRC)/*.o \
-	decoding_test hw_unit_tests v2x_scheduling_test
+	decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test
 
-.PHONY: decoding_test hw_unit_tests v2x_scheduling_test
+.PHONY: decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test
