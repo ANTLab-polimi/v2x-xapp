@@ -1,8 +1,8 @@
 import socket
 # import sctp
-# import asn1
+import logging
 # import asn1tools
-import binascii
+# import binascii
 # from ipso import scenario_creation
 from ctrl_msg_encoder_decoder import RicControlMessageEncoder
 
@@ -41,10 +41,10 @@ def send_socket(socket, msg: str):
 
 # receive data from socker
 def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tuple[list[dict], list[dict], list[dict]]:
-
+    logger = logging.getLogger('')
     ack = 'Indication ACK\n'
 
-    data = socket.recv(50000)
+    data = socket.recv(200000) 
 
     # might happen that multiple messages arrive at the same time
     # thus they are appended one another and the buffer appears as continuos
@@ -56,8 +56,8 @@ def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tup
     with open("/home/traces/data_buffer.txt", mode="ab+") as file:
         file.write(data)
     # print(data.hex())
-    if len(data)>0:
-        print(data)
+    # if len(data)>0:
+    #     print(data)
     while(_total_bytes_consumed < _input_data_length):
         # means we have attached messages, so we have to separate them
         # and put in a the list
@@ -68,10 +68,10 @@ def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tup
         # print("Bytes consumed " + str(_bytes_consumed) + " input data length " + str(_input_data_length))
         if _data_buffer is not None:
             _total_bytes_consumed+=_bytes_consumed
-            print("Total bytes consumed " + str(_total_bytes_consumed) + " input length " + str(_input_data_length) + " & bytes consumed " + str(_bytes_consumed))
+            logger.debug("Total bytes consumed " + str(_total_bytes_consumed) + " input length " + str(_input_data_length) + " & bytes consumed " + str(_bytes_consumed))
             # return str(_data_buffer)
             # print(_data_buffer)
-            print(_data_buffer.decode('utf-8'))
+            # print(_data_buffer.decode('utf-8'))
             _list_of_ric_messages.append(_data_buffer.decode('utf-8'))
         else:
             print("Cannot decode data")

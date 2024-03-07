@@ -26,6 +26,7 @@
 
 
 #define BUFFER_SIZE 1024
+#define RIC_MSG_MAX_SIZE 102400
 
 std::map<string, int> agentIp_socket;
 std::map<std::string, std::list<std::string>> agentIp_gnbId;
@@ -208,7 +209,7 @@ void Xapp::shutdown(){
 void Xapp::handle_rx_msg(void) {
     std::cout << "handle_rx_msg" << std::endl;
 
-    const size_t max_size = 256;
+    const size_t max_size = RIC_MSG_MAX_SIZE;
     char buf[max_size] = {0};
 
     // listen to control from agent
@@ -221,8 +222,10 @@ void Xapp::handle_rx_msg(void) {
 
             int rcv_size = recv(control_sckfd, buf, max_size, 0);
             if (rcv_size > 0) {
-                std::cout << "Message from agent " << agent_ip << std::endl;
-                std::cout << "size" << rcv_size << " buff " << buf << std::endl;
+                std::cout << "Message from agent " << agent_ip << " size " << rcv_size << std::endl;
+                // std::cout << "size" << rcv_size << " buff " << buf << std::endl;
+                // mdclog_write(MDCLOG_INFO, "Message from agent %s" << agent_ip.c_str());
+                // mdclog_write(MDCLOG_INFO, "size %d, buff %s", rcv_size, buf);
 
                 // get gnb_id from agent IP
                 std::map<std::string, std::list<std::string>>::iterator it_gnb;
@@ -248,9 +251,10 @@ void Xapp::handle_rx_msg(void) {
 
 // handle received message from a specific DRL agent
 void Xapp::handle_rx_msg_agent(std::string agent_ip) {
-    std::cout << "Opening RX thread with agent " << agent_ip << std::endl;
+    mdclog_write(MDCLOG_INFO, "Opening RX thread with agent %s",  agent_ip.c_str());
+    // std::cout << "Opening RX thread with agent " << agent_ip << std::endl;
 
-    const size_t max_size = 256;
+    const size_t max_size = RIC_MSG_MAX_SIZE;
     char buf[max_size] = {0};
 
     // listen to control from agent
@@ -264,8 +268,10 @@ void Xapp::handle_rx_msg_agent(std::string agent_ip) {
 
             int rcv_size = recv(control_sckfd, buf, max_size, 0);
             if (rcv_size > 0) {
-                // std::cout << "Message from agent " << agent_ip << std::endl;
+                std::cout << "Message from agent " << agent_ip << " size " << rcv_size << std::endl;
                 // std::cout << "size" << rcv_size << " buff " << buf << std::endl;
+                // mdclog_write(MDCLOG_INFO, "Message from agent %s with size %d" << agent_ip.c_str(), rcv_size);
+                // mdclog_write(MDCLOG_INFO, "size %d", rcv_size);
 
                 // get gnb_id from agent IP
                 std::map<std::string, std::list<std::string>>::iterator it_gnb;
@@ -274,7 +280,7 @@ void Xapp::handle_rx_msg_agent(std::string agent_ip) {
                 // send RIC control request
                 if (it_gnb != agentIp_gnbId.end()) {
                     // in the second element of the map we have a list of gnb ids
-                    mdclog_write(MDCLOG_WARN, "Sending RIC control request to all registered gnbs");
+                    // mdclog_write(MDCLOG_WARN, "Sending RIC control request to all registered gnbs");
                     for(std::list<std::string>::iterator i = it_gnb->second.begin(); i != it_gnb->second.end(); ++i)
                     {
                         send_ric_control_request(buf, (*i), rcv_size);
@@ -328,7 +334,7 @@ void Xapp::handle_external_control_message(int port) {
         }
 
         // Read from the connection
-        const size_t max_size = 256;
+        const size_t max_size = RIC_MSG_MAX_SIZE;
         char buffer[max_size] = {0};
         auto bytes_read = read(connection, buffer, 100);
 
@@ -429,37 +435,69 @@ void Xapp::send_ric_control_request(char* payload, std::string gnb_id, int recv_
  	//	"testp", // call process id
  	//	6
  	//};
-	const char* msg = payload;
+
+    // if received control msg from the xapp is to long
+    // or if there are multiple msg coming at the same time we have to 
+    // divide them into multiple ric control messages so that they can fit into the payload
+    int consumed_bytes = 0;
+    
+    // const char* msg = payload;
+    const char* msg;
     if(recv_size == -1){
-        din.control_msg_size = strlen(msg) + 1;
-    }else{
-        din.control_msg_size = recv_size;
-    }
-	mdclog_write(MDCLOG_INFO, "Size of msg %ld", din.control_msg_size);
-	din.control_msg = (uint8_t*) calloc(din.control_msg_size, sizeof(uint8_t));
-	std::memcpy(din.control_msg, msg, din.control_msg_size);
- 	ric_control_helper dout {};
+        recv_size = strlen(msg) + 1;
+    }    
+    int remaining_bytes = recv_size;
+    int max_single_msg_size = 700;
+    do{
+        
+        // if(recv_size == -1){
+        //     din.control_msg_size = strlen(msg) + 1;
+        // }else{
+        //     din.control_msg_size = recv_size;
+        // }
 
- 	// control request object
- 	ric_control_request ctrl_req {};
- 	ric_control_request ctrl_recv {};
+        // we have to split the msg as it exceed the max size
+        if ((remaining_bytes) < max_single_msg_size){
+            // remaining can fit into a single msg
+            // the control size is therefor the remaining
+            din.control_msg_size = remaining_bytes;
+            msg = payload + consumed_bytes;
+            consumed_bytes +=remaining_bytes;
+        }else{
+            // we have to split
+            din.control_msg_size = max_single_msg_size;
+            msg = payload + consumed_bytes;
+            consumed_bytes += max_single_msg_size;
+            remaining_bytes  = recv_size - consumed_bytes;
+        }
+        
+        mdclog_write(MDCLOG_INFO, "Size of msg %ld", din.control_msg_size);
+        din.control_msg = (uint8_t*) calloc(din.control_msg_size, sizeof(uint8_t));
+        std::memcpy(din.control_msg, msg, din.control_msg_size);
+        ric_control_helper dout {};
 
- 	unsigned char buf[BUFFER_SIZE];
-    size_t buf_size = BUFFER_SIZE;
+        // control request object
+        ric_control_request ctrl_req {};
+        ric_control_request ctrl_recv {};
 
- 	res = ctrl_req.encode_e2ap_control_request(&buf[0], &buf_size, din);
+        unsigned char buf[BUFFER_SIZE];
+        size_t buf_size = BUFFER_SIZE;
 
- 	xapp_rmr_header rmr_header;
-	rmr_header.message_type = RIC_CONTROL_REQ;
-	rmr_header.payload_length = buf_size; //data_size
-	strcpy((char*)rmr_header.meid, gnb_id.c_str());
+        res = ctrl_req.encode_e2ap_control_request(&buf[0], &buf_size, din);
 
-	mdclog_write(MDCLOG_INFO, "Sending CTRL  REQ in file= %s, line=%d for MEID %s", __FILE__, __LINE__, meid);
+        xapp_rmr_header rmr_header;
+        rmr_header.message_type = RIC_CONTROL_REQ;
+        rmr_header.payload_length = buf_size; //data_size
+        strcpy((char*)rmr_header.meid, gnb_id.c_str());
 
-    int result = rmr_ref->xapp_rmr_send(&rmr_header, (void*)buf);
-    if(result) {
-   	    mdclog_write(MDCLOG_INFO, "CTRL REQ SUCCESSFUL in file= %s, line=%d for MEID %s",__FILE__,__LINE__, meid);
-    }
+        mdclog_write(MDCLOG_INFO, "Sending CTRL  REQ in file= %s, line=%d for MEID %s", __FILE__, __LINE__, meid);
+
+        int result = rmr_ref->xapp_rmr_send(&rmr_header, (void*)buf);
+        if(result) {
+            mdclog_write(MDCLOG_INFO, "CTRL REQ SUCCESSFUL in file= %s, line=%d for MEID %s",__FILE__,__LINE__, meid);
+        }
+
+    }while(consumed_bytes<recv_size);
 }
 
 void Xapp::startup_subscribe_requests(void ){

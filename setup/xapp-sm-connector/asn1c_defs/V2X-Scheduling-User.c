@@ -23,7 +23,7 @@ memb_V2X_Scheduling_ItemList_constraint_1(const asn_TYPE_descriptor_t *td, const
 	/* Determine the number of elements */
 	size = _A_CSEQUENCE_FROM_VOID(sptr)->count;
 	
-	if((size >= 1 && size <= 1023)) {
+	if((size >= 0 && size <= 1023)) {
 		/* Perform validation of the inner elements */
 		return td->encoding_constraints.general_constraints(td, sptr, ctfailcb, app_key);
 	} else {
@@ -39,7 +39,7 @@ memb_V2X_Scheduling_ItemList_constraint_1(const asn_TYPE_descriptor_t *td, const
 // 	-1	/* (SIZE(1..1023)) */};
 static asn_per_constraints_t asn_PER_type_V2X_Scheduling_ItemList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  1,  1023 }	/* (SIZE(1..1023)) */,
+	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(0..1023)) */,
 	0, 0	/* No PER value map */
 };
 // static asn_oer_constraints_t asn_OER_memb_V2X_Scheduling_ItemList_constr_3 CC_NOTUSED = {
@@ -47,7 +47,7 @@ static asn_per_constraints_t asn_PER_type_V2X_Scheduling_ItemList_constr_3 CC_NO
 // 	-1	/* (SIZE(1..1023)) */};
 static asn_per_constraints_t asn_PER_memb_V2X_Scheduling_ItemList_constr_3 CC_NOTUSED = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 10,  10,  1,  1023 }	/* (SIZE(1..1023)) */,
+	{ APC_CONSTRAINED,	 10,  10,  0,  1023 }	/* (SIZE(1..1023)) */,
 	0, 0	/* No PER value map */
 };
 static asn_TYPE_member_t asn_MBR_V2X_Scheduling_ItemList_3[] = {

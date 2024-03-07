@@ -12,5 +12,5 @@ if [ ! $? -eq 0 ]; then
     cp ${MODEL_DIR}/${DOCKER_FILE} ./${DOCKER_FILE}_${IMAGE_NAME}
     $SUDO docker build  \
             -f ${DOCKER_FILE}_${IMAGE_NAME} -t ${IMAGE_NAME}:latest .
-
+    rm ${DOCKER_FILE}_${IMAGE_NAME}
 fi

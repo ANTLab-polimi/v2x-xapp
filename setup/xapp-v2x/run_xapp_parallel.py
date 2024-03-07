@@ -12,7 +12,7 @@ from v2x_pre_optimize import V2XPreScheduling
 from v2x_optimization import V2XFormulation
 from v2x_ric_message_format import SourceUserScheduling, UserScheduling, SingleScheduling, SlRlcPduInfo
 import itertools
-import pickle
+import ast
 import time
 
 from multiprocessing import shared_memory as shm
@@ -22,6 +22,71 @@ import multiprocessing as mp
 
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 _NUMEROLOGY = 2
+
+_ALLOWED_USED_SF_SLOTS = {
+    1:  [0, 1, 2, 3],
+    6:  [0, 1, 2, 3],
+    2:  [0, 1],
+    7:  [0, 1],
+    4:  [1, 2, 3],
+    9:  [1, 2, 3],
+    0: [],
+    3: [],
+    5: [],
+    8: []
+}
+
+_ALLOWED_SUBFRAMES = [1,2,4,6,7,9]
+
+def get_next_valid_slot(frame: int, subframe: int, slot:int ):
+    def _get_max_allowed_slots_in_ref_subframe(subframe):
+        try:
+            _max_allowed_slots_in_ref_subframe = max(_ALLOWED_USED_SF_SLOTS[subframe])+1
+        except ValueError:
+            # empty allowed slots
+            _max_allowed_slots_in_ref_subframe = 0
+        except KeyError:
+            # empty allowed slots
+            _max_allowed_slots_in_ref_subframe = 0
+        return _max_allowed_slots_in_ref_subframe
+
+    _is_new_subframe = False
+    _is_new_frame = False
+    _is_valid_slot = False
+    _transition_from_unallowed_subframe = False
+    while (not _is_valid_slot):
+        _max_allowed_slots_in_ref_subframe = _get_max_allowed_slots_in_ref_subframe(subframe)
+        if _max_allowed_slots_in_ref_subframe == 0:
+            subframe = (subframe + 1)%10
+            slot = -1 # it will add to the next iteration and start from slot = 0
+            if subframe == 0:
+                _is_new_frame = True
+            _transition_from_unallowed_subframe = True
+        else:
+            if slot >= _max_allowed_slots_in_ref_subframe:
+                _is_new_subframe = True
+                slot = 0
+            else:
+                slot = (slot+1)%_max_allowed_slots_in_ref_subframe
+                _is_new_subframe = (slot==0) & (not _transition_from_unallowed_subframe)
+            # in case the slot goes again to 0, it means a new subframe has
+            # started, thus we add by 1
+            subframe = (subframe + (1 if _is_new_subframe else 0))%10
+            if subframe == 0:
+                _is_new_frame = True
+            while (subframe not in _ALLOWED_SUBFRAMES):
+                subframe = (subframe + 1)%10
+                if subframe == 0:
+                    _is_new_frame = True
+                slot = 0
+            try:
+                _is_valid_slot = (subframe in _ALLOWED_SUBFRAMES) & (slot in _ALLOWED_USED_SF_SLOTS[subframe])
+            except KeyError:
+                _is_valid_slot = False
+            
+    # the same logic we deploy for the frame 
+    frame = frame + (1 if _is_new_frame else 0)
+    return frame, subframe, slot
 
 class XmlToDictManager:
     def __init__(self,
@@ -42,10 +107,12 @@ class XmlToDictManager:
 
 
 def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
+    logger = logging.getLogger('')
     def send_data(v2x_scheduling_all_users: List[SourceUserScheduling], plmn:str):
         data_length, data_bytes = encoder_class.encode_scheduling_plmn(v2x_scheduling_all_users, plmn)
         # we could make a check here that data length is identical to received data length from c++ function
-        logging.info('Sending back the data with size ..' + str(data_length))
+        logger.info('Sending back the data with size .. ' + str(data_length))
+        # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
     return send_data
 
@@ -80,29 +147,73 @@ def _schedule_data(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_
 
     return v2x_source_scheduling_users
 
+def _check_ric_commands_to_be_sent_thread(send_callback):
+    _shared_list_ric_command = shm.ShareableList(name="ric_commands")
+    # _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
+    while True:
+        # any([_shared_list_has_new_ric_command]) |
+        _length_shared_list_ric_command_gt_0 = [len(_ric_command_dict_str_agg)>0 for _ric_command_dict_str_agg in _shared_list_ric_command]
+        if any(_length_shared_list_ric_command_gt_0):
+            _check_ric_commands_to_be_sent(send_callback)
+
+
 def _check_ric_commands_to_be_sent(send_callback):
     logger = logging.getLogger('')
-    try:
-        _shared_list_ric_command = shm.ShareableList(name="ric_commands")
-    except FileNotFoundError as err:
-        print("Ric commands shared list not created")
-        _shared_list_ric_command = []
-    # print("Checking if there are ric commands")
+    # try:
+    _shared_list_ric_command = shm.ShareableList(name="ric_commands")
+    _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
+    # except FileNotFoundError as err:
+    #     print("Ric commands shared list not created")
+    #     _shared_list_ric_command = []
+    # logger.debug("Checking if there are ric commands")
+    # logger.debug([len(_ric_command_dict_str_agg) for _ric_command_dict_str_agg in _shared_list_ric_command])
     # here inside the string of each ric command might be multiple ric commands
-    for _ric_command_ind ,_ric_command_dict_str in enumerate(_shared_list_ric_command):
+    for _ric_command_ind in range(len(_shared_list_ric_command)):
+    # for _ric_command_ind ,_ric_command_dict_str_agg in enumerate(_shared_list_ric_command):
         # check if there is data
-        if len(_ric_command_dict_str) > 0:
-            logger.debug(f"Ric command available in the queue with length {len(_ric_command_dict_str)}")
-            logger.debug(_ric_command_dict_str)
-            _data_dict = eval(_ric_command_dict_str)
-            # get the data from the dict
-            _plmn = _data_dict.get(transform._JSON_PLMN)
+        _ric_command_dict_str_agg = _shared_list_ric_command[_ric_command_ind]
 
-            # the data that should be sent to the send callback should be the list of source user scheduling
-            v2x_scheduling_all_users: List[SourceUserScheduling] = []
-            if send_callback is not None:
-                send_callback(v2x_scheduling_all_users, str(_plmn))
+        if len(_ric_command_dict_str_agg) > 0:
+            logger.debug(f"Ric command available in the queue with index {_ric_command_ind} with length {len(_ric_command_dict_str_agg)}")
+            _ric_command_dict_str_list = _ric_command_dict_str_agg.split("|")
+            logger.debug(f"Number of messages in queue {len(_ric_command_dict_str_list)}")
+            for _ric_command_dict_str in _ric_command_dict_str_list:
+                if len(_ric_command_dict_str) == 0:
+                    continue
+                _data_dict = {}
+                # ast.literal_eval()
+                try:
+                    _data_dict = eval(str(_ric_command_dict_str))
+                except SyntaxError:
+                    logger.debug("Syntax error " + str(_ric_command_dict_str))
+                    continue
+                except ValueError:
+                    logger.debug("Value error " + str(_ric_command_dict_str))
+                    continue
+                # get the data from the dict
+                # logger.debug("Data ric in the dict: ")
+                # logger.debug(_data_dict)
+                _plmn = _data_dict.get(transform._JSON_PLMN)
+                # the data that should be sent to the send callback should be the list of source user scheduling
+                v2x_scheduling_all_users: List[SourceUserScheduling] = [SourceUserScheduling(-1, _source_sched) for _source_sched in _data_dict.get(_JSON_SOURCE_SCHEDULING)]
+                # if len(v2x_scheduling_all_users)>0:
+                #     logger.debug("First all users data ")
+                #     logger.debug(v2x_scheduling_all_users[0].to_dict_c())
+                # _are_qual = _data_dict.get(_JSON_SOURCE_SCHEDULING) == [_single_sched.to_dict_c()  for _single_sched in  v2x_scheduling_all_users]
+                # logger.debug(f"Decoding from dict is the same {_are_qual}")
+
+                if send_callback is not None:
+                    send_callback(v2x_scheduling_all_users, str(_plmn))
+                else:
+                    # test only decoding
+                    logging.debug('Encoding..')
+                    _msg_encoder = RicControlMessageEncoder()
+                    data_length, data_bytes = _msg_encoder.encode_scheduling_plmn(v2x_scheduling_all_users, _plmn)
+                    # we could make a check here that data length is identical to received data length from c++ function
+                    logging.debug('Encoding was successfull with size..' + str(data_length))
+            logging.debug(f"Emptying memory for ind {_ric_command_ind}")
             _shared_list_ric_command[_ric_command_ind] = ""
+            _shared_list_has_new_ric_command[_ric_command_ind] = False
 
 def create_or_reset_shareable_memory():
     try:
@@ -111,7 +222,7 @@ def create_or_reset_shareable_memory():
         for _ind, _ in enumerate(_shared_list_data):
             _shared_list_data[_ind] = ""
     except FileNotFoundError:
-        _shared_list_data = shm.ShareableList([" "*int(1e6)]*50, name="data")
+        _shared_list_data = shm.ShareableList([" "*int(5e6)]*50, name="data")
     try:
         # we see to search for it
         _shared_list_data_updated = shm.ShareableList(name="data_updated")
@@ -126,7 +237,14 @@ def create_or_reset_shareable_memory():
             _shared_list_ric_command[_ind] = ""
     except FileNotFoundError:
         # the ric commands can be long since it contains scheduling info
-        _shared_list_ric_command = shm.ShareableList([" "*int(1e6)]*50, name="ric_commands")
+        _shared_list_ric_command = shm.ShareableList([" "*int(5e6)]*50, name="ric_commands")
+    try:
+        # we see to search for it
+        _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
+        for _ind, _ in enumerate(_shared_list_has_new_ric_command):
+            _shared_list_has_new_ric_command[_ind] = False
+    except FileNotFoundError:
+        _shared_list_has_new_ric_command = shm.ShareableList([False]*50, name="has_new_ric_commands")
     try:
         # we see to search for it
         _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
@@ -146,7 +264,7 @@ def add_sample_data_for_optimization():
         _title = file.readline()
         for _ind in range(5):
             _data_str = str(file.readline())
-            _data_dict = eval(eval(_data_str))
+            _data_dict = eval(eval(str(_data_str)))
             _data_dict['time'] = time.time()
             _plmn_ind = int(_data_dict[transform._JSON_PLMN]) - 111
             print("Adding plmn data " + str(int(_data_dict[transform._JSON_PLMN])))
@@ -168,7 +286,7 @@ def _check_optimization_to_be_executed()->List[dict]:
             print("Plmn to be optimized ", end = "")
         for _ind, _elem in enumerate(_shared_list_data_updated):
             if _elem & (not _shared_list_being_optimized[_ind]):
-                _data = eval(_shared_list_data[_ind])
+                _data = eval(str(_shared_list_data[_ind]))
                 # logger.debug("Data in _check_optimization_to_be_executed")
                 # logger.debug(_data)
                 print(_data[transform._JSON_PLMN], end=" ")
@@ -188,6 +306,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
     # _shared_list_data_updated = shm.ShareableList(name="data_updated")
     _shared_list_ric_command = shm.ShareableList(name="ric_commands")
+    _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
     # _shared_list_data = shm.ShareableList(name="data")
     # logger = logging.getLogger('demo')
     logger = logging.getLogger('')
@@ -196,7 +315,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     subframe = 0
     _plmn = plmn
     _frame_schedule_until = frame + 10
-    _subframe_schedule_until = subframe + 10
+    _subframe_schedule_until = subframe
     slot = 0
     _data: dict = {}
     # if we get new data we update the ue reports in the preopt object
@@ -211,6 +330,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
 
     _block_queue = True
     _is_scheduled_needed = False
+    _num_sched_in_single_report = 0
     while True:
         # if not queue.empty():
         if _block_queue:
@@ -229,11 +349,25 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             subframe = _data[transform._JSON_SUBFRAME]
             # slot = _data[transform._JSON_SLOT]
             # we start scheduling from the next subframe with slot index 0
+
             subframe = (subframe+1)%10 # we shift to the next subframe index
             _added_frame = 1 if subframe == 0 else 0 # means it has moved to the next frame
+            # get acceptable subframe value
+            while(subframe not in _ALLOWED_SUBFRAMES):
+                subframe = (subframe+1)%10
+                # if subframe passes to index 0, it means we go to a new frame
+                if subframe == 0:
+                    _added_frame = 1
+            # need to define the right value of slot 
+            # this should always works since we set the condition before
+            # the first allowed value of slot
+            slot = _ALLOWED_USED_SF_SLOTS[subframe][0]
+            
             frame+=_added_frame # if subframe moved to the new frame (i.e. subframe == 0) we add 1 else we add 0
             _frame_schedule_until = frame + 10
-            _subframe_schedule_until = subframe + 10
+            _subframe_schedule_until = subframe
+            _num_sched_in_single_report = 0
+            logger.debug(f"New scheduling from ({frame}, {subframe}) to ({_frame_schedule_until}, {_subframe_schedule_until})")
             # slot = 0 # we have already set slot = 0, this it is ok 
             # we get the reports send and update the data in the preoptimizer
             _buffer_status_reports = _data['buffer_status']
@@ -241,6 +375,8 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             _xml_tranform = transform.XmlToDictDataTransform(None, _plmn, _buffer_status_reports)
             v2x_preopt_obj.update_reports(_xml_tranform.all_users_reports)
             _is_scheduled_needed = True
+            logger.debug("Start data scheduling")
+            
         else:
             # when there is new data we block the queue to get new data
             if not queue.empty():
@@ -250,36 +386,58 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             # here we schedule for the next slot until we reach the limit of 1 frame or 10 subframes
             
             # logger.debug("Q size in get " + str((plmn, queue.qsize())))
-            v2x_source_scheduling_all_users = _schedule_data_and_save(_data, 
+            # logger.debug("Start data scheduling")
+            v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
+            # logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
+            # logger.debug(str([str(_sched) for _sched in v2x_source_scheduling_all_users]))
             # write data to the file
             for _source_sched in v2x_source_scheduling_all_users:
-                logger.info("Data scheduled & writing to file")
+                # logger.debug("Data scheduled & writing to file")
                 _source_sched.write_data_to_file(plmn=_plmn)
             # insert data in the shareable list
-            _optimized_dict = {
-                transform._JSON_PLMN: _plmn,
-                _JSON_SOURCE_SCHEDULING: [_single_source_sched.to_dict_c() for _single_source_sched in v2x_source_scheduling_all_users]
-            }
-            # inser the ric command to the list
-            # here instead of mere adding it, we can append the new command 
-            _shared_list_ric_command[_plmn_ind] += str(_optimized_dict)
-            # remove the state of being optimized
-            _shared_list_being_optimized[_plmn_ind] = False
-            slot = (slot+1)%(pow(2,_NUMEROLOGY))
-            # in case the slot goes again to 0, it means a new subframe has
-            # started, thus we add by 1
-            subframe = (subframe + (1 if slot==0 else 0))%10
-            # the same logic we deploy for the frame 
-            frame = frame + (1 if ((subframe == 0) & (slot==0)) else 0)
+            if len(v2x_source_scheduling_all_users)>0:
+                _num_sched_in_single_report+=1
+                logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
+                _optimized_dict = {
+                    transform._JSON_PLMN: _plmn,
+                    _JSON_SOURCE_SCHEDULING: [_single_source_sched.to_dict_c() for _single_source_sched in v2x_source_scheduling_all_users]
+                }
+                # inser the ric command to the list
+                # here instead of mere adding it, we can append the new command 
+                # logger.info(f"Ric command size {len(_shared_list_ric_command[_plmn_ind])}")
+                _final_string_to_add = ("|" if len(_shared_list_ric_command[_plmn_ind])>0 else "") + str(_optimized_dict)
+                _shared_list_ric_command[_plmn_ind] += _final_string_to_add
+                # remove the state of being optimized
+                _shared_list_being_optimized[_plmn_ind] = False
+                _shared_list_has_new_ric_command[_plmn_ind] = True
+            
+            frame, subframe, slot = get_next_valid_slot(frame, subframe, slot)
             # check if all the slot in the needed has been scheduled
             # if so we set _block_queue to true to wait for new data to save 
             # cpu usage
-            if (_frame_schedule_until == frame) & (_subframe_schedule_until == subframe):
+            # logger.debug(f"Scheduling slot ({frame}, {subframe}, {slot}), from ({_frame_schedule_until}, {_subframe_schedule_until})")
+            if (frame >= _frame_schedule_until) & ( subframe > _subframe_schedule_until):
                 logger.info("Scheduling finished, blocking queue for next data report")
                 _block_queue = True
                 _is_scheduled_needed = False
+                # if _num_sched_in_single_report == 0:
+                # we send the empty list scheduling to trigger simulation play
+                # we generate empty scheduling data to make sim continue
+                
+                _end_msg_dict = {
+                    transform._JSON_PLMN: _plmn,
+                    _JSON_SOURCE_SCHEDULING: []
+                }
+                # _final_string_to_add = ("|" if len(_shared_list_ric_command[_plmn_ind])>0 else "") + str(_optimized_dict)
+                _init_length_shared_list =  len(_shared_list_ric_command[_plmn_ind])
+                _final_string = "|" + str(_end_msg_dict )
+                _shared_list_ric_command[_plmn_ind] += _final_string
+                # remove the state of being optimized
+                _shared_list_being_optimized[_plmn_ind] = False
+                _shared_list_has_new_ric_command[_plmn_ind] = True
+                logger.debug(f"Added continue simulation control message; Size from {_init_length_shared_list} to { len(_shared_list_ric_command[_plmn_ind])}")
 
 def recreate_report_files():
     with open("/home/traces/ric_messages.txt", 'w') as f:
@@ -330,7 +488,8 @@ def handle_optimization_thread(is_test_mode: bool=False):
             print()
         sleep(2)
 
-def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, _transform_list: List[XmlToDictManager]):
+def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, 
+                  _transform_list: List[XmlToDictManager]) -> XmlToDictManager:
     # logging.info('Received data: ' + msg)
     _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(msg)
     # print("Plmn id of the sender " + str(_plmn_id))
@@ -345,6 +504,8 @@ def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, _transform_li
             _transform = XmlToDictManager(msg_encoder, _plmn_id)
             _transform_list.append(_transform)
         _transform.transform.parse_incoming_data(msg)
+        return _transform
+    return None
 
 def setup_logger():
     logging_filename = os.path.join(os.getcwd(), 'report.log')
@@ -361,8 +522,33 @@ def setup_logger():
     console.setLevel(logging.DEBUG)
     console.setFormatter(formatter)
     logger.addHandler(console)
-
     
+def send_reports_for_processing(_transform:XmlToDictManager, 
+                                # _shared_list_data:shm.ShareableList,
+                                # _shared_list_data_updated:shm.ShareableList
+                                ):
+    # insert in queue
+    # update data from the preoptimization 
+    _shared_list_data = shm.ShareableList(name="data")
+    _shared_list_data_updated = shm.ShareableList(name="data_updated")
+    logger = logging.getLogger('')
+    logger.info(f"Sending reports for processing {_transform.plmn}")
+    _time_int = int(time.time())
+    _data = {
+        'time': _time_int,
+        transform._JSON_PLMN: _transform.plmn,
+        transform._JSON_FRAME: _transform.transform.frame ,
+        transform._JSON_SUBFRAME: _transform.transform.subframe ,
+        transform._JSON_SLOT: _transform.transform.slot ,
+        'buffer_status': _transform.transform.to_dict()
+    }
+    # logging.info(f"Data inserted in the queue: ")
+    # logging.info(_data)
+    _plmn_ind = int(_transform.plmn) - 111
+    _shared_list_data[_plmn_ind] = str(_data)
+    _shared_list_data_updated[_plmn_ind] = True
+    _transform.transform.reset()
+
 def main():
     _report_filename = "/home/ef-xapp/report.csv"
     # configure logger and console output
@@ -374,19 +560,14 @@ def main():
         pickle_out = open('/home/traces/ue_reports_' +str(_plmn)+ '.pickle', 'wb')
         pickle_out.close()
 
-    # pickle_out = open('/home/traces/relay_links_reports.pickle', 'wb')
-    # pickle_out.close()
-    # pickle_out = open('/home/traces/sent_relays_reports.pickle', 'wb')
-    # pickle_out.close()
-
     # # create the deamon thread for message handling
     print("Creating the shareable memory")
     logger.debug("Creating the shareable memory")
 
     create_or_reset_shareable_memory()
     create_or_reset_shareable_memory()
-    _shared_list_data = shm.ShareableList(name="data")
-    _shared_list_data_updated = shm.ShareableList(name="data_updated")
+    # _shared_list_data = shm.ShareableList(name="data")
+    # _shared_list_data_updated = shm.ShareableList(name="data_updated")
 
     # # create the deamon thread for message handling
     print("Starting the handler of optimization threads")
@@ -403,8 +584,11 @@ def main():
 
     _send_encoded_data_func = send_optimized_data(control_sck, _msg_encoder)
 
-    # _test_ric_messages = generate_sched_data()
+    _ric_handling_thread = Thread(name="ric_ctrl_messages_thread", target=_check_ric_commands_to_be_sent_thread, 
+                                  args=(_send_encoded_data_func,), daemon=True)
+    _ric_handling_thread.start()
 
+    # _test_ric_messages = generate_sched_data()
 
     while True:
         data_sck = receive_from_socket(control_sck, _msg_encoder)
@@ -419,38 +603,23 @@ def main():
             logging.info('Received data')
             
             # appending the data to the tranformer
-            if isinstance(data_sck, list):
-                for _msg in data_sck:
-                    # print("Received data")
-                    # print(_msg)
-                    parse_xml_msg(_msg, _msg_encoder, _transform_list)
+            data_sck_list = []
+            if not isinstance(data_sck, list):
+                data_sck_list = [data_sck]
             else:
-                parse_xml_msg(data_sck, _msg_encoder, _transform_list)
-            # here we send data to the right sharable list which will be used afterwards for scheduling
-            for _transform in _transform_list:
-                logging.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
+                data_sck_list = data_sck
+            
+            for _msg in data_sck_list:
+                # print("Received data")
+                # print(_msg)
+                _transform:XmlToDictManager = parse_xml_msg(_msg, _msg_encoder, _transform_list)
                 if _transform.transform.has_received_all_reports():
-                    # insert in queue
-                    # update data from the preoptimization 
-                    _time_int = int(time.time())
-                    _data = {
-                        'time': _time_int,
-                        transform._JSON_PLMN: _transform.plmn,
-                        transform._JSON_FRAME: _transform.transform.frame ,
-                        transform._JSON_SUBFRAME: _transform.transform.subframe ,
-                        transform._JSON_SLOT: _transform.transform.slot ,
-                        'buffer_status': _transform.transform.to_dict()
-                    }
-                    logging.info(f"Data inserted in the queue: ")
-                    logging.info(_data)
-                    _plmn_ind = int(_transform.plmn) - 111
-                    _shared_list_data[_plmn_ind] = str(_data)
-                    _shared_list_data_updated[_plmn_ind] = True
-                    _transform.transform.reset()
+                    logging.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
+                    # send_reports_for_processing(_transform, _shared_list_data, _shared_list_data_updated)
+                    send_reports_for_processing(_transform)
+            # here we send data to the right sharable list which will be used afterwards for scheduling
         # generate and send data    
-        _check_ric_commands_to_be_sent(_send_encoded_data_func)
-
-
+        # _check_ric_commands_to_be_sent(_send_encoded_data_func)
 
 def test_schedule_working():
     setup_logger()
@@ -519,9 +688,10 @@ def test_schedule_working():
                 _shared_list_data_updated[_plmn_ind] = True
                 _transform.transform.reset()
     # generate and send data    
-    _check_ric_commands_to_be_sent(None)
+    while True:
+        _check_ric_commands_to_be_sent(None)
 
 
 if __name__ == '__main__':
-    test_schedule_working()
-    # main()
+    # test_schedule_working()
+    main()

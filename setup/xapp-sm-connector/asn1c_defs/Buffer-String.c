@@ -5,7 +5,7 @@
  * 	`asn1c -pdu=auto -fno-include-deps -fcompound-names -findirect-choice -gen-PER -gen-OER -no-gen-example`
  */
 
-#include "Buffer-String.h"
+#include "Buffer-String.h" 
 
 /*
  * This type is implemented using OCTET_STRING,
@@ -14,11 +14,11 @@
 // static asn_oer_constraints_t asn_OER_type_Buffer_String_constr_1 CC_NOTUSED = {
 // 	{ 0, 0 },
 // 	-1	/* (SIZE(3..3)) */};
-asn_per_constraints_t asn_PER_type_Buffer_String_constr_1 CC_NOTUSED = {
-	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
-	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(0..63)) */,
-	0, 0	/* No PER value map */
-};
+// asn_per_constraints_t asn_PER_type_Buffer_String_constr_1 CC_NOTUSED = {
+// 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
+// 	{ APC_CONSTRAINED,	 16,  16,  0,  65535 }	/* (SIZE(0..63)) */,
+// 	0, 0	/* No PER value map */
+// };
 static const ber_tlv_tag_t asn_DEF_Buffer_String_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (4 << 2))
 };

@@ -17,24 +17,24 @@ asn_TYPE_member_t asn_MBR_V2XSciMessageItem_1[] = {
 		0, 0, /* No default value */
 		"rsrp"
 		},
-	// { ATF_NOFLAGS, 0, offsetof(struct V2XSciMessageItem, header),
-	// 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
-	// 	-1,	/* IMPLICIT tag at current level */
-	// 	&asn_DEF_Buffer_String,
-	// 	0,
-	// 	{ 0, 0, 0 },
-	// 	0, 0, /* No default value */
-	// 	"header"
-	// 	},
-	// { ATF_NOFLAGS, 0, offsetof(struct V2XSciMessageItem, tag),
-	// 	(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
-	// 	-1,	/* IMPLICIT tag at current level */
-	// 	&asn_DEF_Buffer_String,
-	// 	0,
-	// 	{ 0, 0, 0 },
-	// 	0, 0, /* No default value */
-	// 	"tag"
-	// 	},
+	{ ATF_NOFLAGS, 0, offsetof(struct V2XSciMessageItem, header),
+		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_Buffer_String,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"header"
+		},
+	{ ATF_NOFLAGS, 0, offsetof(struct V2XSciMessageItem, tag),
+		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_Buffer_String,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"tag"
+		},
 	// { ATF_POINTER, 2, offsetof(struct V2XSciMessageItem, header),
 	// 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
 	// 	-1,	/* IMPLICIT tag at current level */
@@ -61,16 +61,16 @@ static const ber_tlv_tag_t asn_DEF_V2XSciMessageItem_tags_1[] = {
 };
 static const asn_TYPE_tag2member_t asn_MAP_V2XSciMessageItem_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* lowerInterval */
-    // { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 }, /* upperInterval */
-	// { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 }, /* rsrp */
+    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 }, /* upperInterval */
+	{ (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 }, /* rsrp */
 };
 asn_SEQUENCE_specifics_t asn_SPC_V2XSciMessageItem_specs_1 = {
 	sizeof(struct V2XSciMessageItem),
 	offsetof(struct V2XSciMessageItem, _asn_ctx),
 	asn_MAP_V2XSciMessageItem_tag2el_1,
-	1,	/* Count of tags in the map */
+	3,	/* Count of tags in the map */
 	0, 0, 0,	/* Optional elements (not needed) */
-	1,	/* First extension addition */
+	3,	/* First extension addition */
 };
 // asn_SEQUENCE_specifics_t asn_SPC_V2XSciMessageItem_specs_1 = {
 // 	sizeof(struct V2XSciMessageItem),
@@ -95,7 +95,7 @@ asn_TYPE_descriptor_t asn_DEF_V2XSciMessageItem = {
 		/sizeof(asn_DEF_V2XSciMessageItem_tags_1[0]), /* 1 */
 	{ 0, 0, SEQUENCE_constraint },
 	asn_MBR_V2XSciMessageItem_1,
-	1,	/* Elements count */
+	3,	/* Elements count */
 	&asn_SPC_V2XSciMessageItem_specs_1	/* Additional specs */
 };
 

@@ -18,7 +18,8 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 #include "buffer.h"
-
+#include "ns_assert.h"
+#include "log.h"
 
 #define LOG_INTERNAL_STATE(y)                                                                    \
   NS_LOG_LOGIC (y << "start="<<m_start<<", end="<<m_end<<", zero start="<<m_zeroAreaStart<<              \
@@ -45,6 +46,8 @@ static struct Zeroes
 }
 
 namespace ns3 {
+
+// NS_LOG_COMPONENT_DEFINE ("Buffer");
 
 
 uint32_t Buffer::g_recommendedStart = 0;
@@ -344,6 +347,7 @@ Buffer::AddAtStart (uint32_t start)
       m_data->m_dirtyEnd = m_end;
     }
   m_maxZeroAreaStart = std::max (m_maxZeroAreaStart, m_zeroAreaStart);
+  // LOG_INTERNAL_STATE ("add start=" << start << ", ");
   NS_ASSERT (CheckInternalState ());
 }
 void
@@ -388,6 +392,7 @@ Buffer::AddAtEnd (uint32_t end)
       m_data->m_dirtyEnd = m_end;
     } 
   m_maxZeroAreaStart = std::max (m_maxZeroAreaStart, m_zeroAreaStart);
+  // LOG_INTERNAL_STATE ("add end=" << end << ", ");
   NS_ASSERT (CheckInternalState ());
 }
 
@@ -476,6 +481,7 @@ Buffer::RemoveAtStart (uint32_t start)
       m_zeroAreaStart = m_end;
     }
   m_maxZeroAreaStart = std::max (m_maxZeroAreaStart, m_zeroAreaStart);
+  // LOG_INTERNAL_STATE ("rem start=" << start << ", ");
   NS_ASSERT (CheckInternalState ());
 }
 void 
@@ -510,6 +516,7 @@ Buffer::RemoveAtEnd (uint32_t end)
       m_zeroAreaStart = m_start;
     }
   m_maxZeroAreaStart = std::max (m_maxZeroAreaStart, m_zeroAreaStart);
+  // LOG_INTERNAL_STATE ("rem end=" << end << ", ");
   NS_ASSERT (CheckInternalState ());
 }
 

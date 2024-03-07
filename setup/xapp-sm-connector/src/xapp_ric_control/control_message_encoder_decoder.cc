@@ -569,11 +569,14 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
                 uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
                 bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
                 extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
-                Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
-                allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
-                allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
-                memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
-                schedulingItem->nrSlotAllocBuffer = *allocBufferString;
+                // Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
+                // allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                // allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
+                // memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                // schedulingItem->nrSlotAllocBuffer = *allocBufferString;
+                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
+                schedulingItem->nrSlotAllocBuffer.size = (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
                 ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
             }
             // add this user the the list of all users
@@ -588,9 +591,6 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
     rcControlMessage->present = E2SM_RC_ControlMessage_PR_v2xSchedulingMessage_Format;
     rcControlMessage->choice.v2xSchedulingMessage_Format = v2XSchedulingAllUsersListPlmn;
 
-    // xer_fprint(stdout, &asn_DEF_E2SM_RC_ControlMessage, rcControlMessage);
-    // afterwords we have to generate the data part
-
     sctp_buffer_t* data = (sctp_buffer_t *) calloc(1, sizeof(sctp_buffer_t));
 
     uint8_t *buf;
@@ -599,6 +599,18 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
 
     data->buffer = (uint8_t *) calloc(1, data->length);
     memcpy(data->buffer, buf, std::min(data->length, MAX_SCTP_BUFFER));
+
+    // xer_fprint(stdout, &asn_DEF_E2SM_RC_ControlMessage, rcControlMessage);
+    // afterwords we have to generate the data part
+
+    // char printBuffer[40960]{};
+    // char *tmp = printBuffer;
+    // for (size_t _buffInd = 0; (size_t)_buffInd<data->length; ++_buffInd){
+    //     snprintf(tmp, 3, "%02x", data->buffer[_buffInd]);
+    //     tmp += 2;
+    //     // std::cout << std::setfill('0') << std::setw(2) << data.buffer[_buffInd];
+    // }
+    // printf("Buffer %s \n", printBuffer);
 
     // freeing all the data before returning the struct
     free(v2XSchedulingAllUsersListPlmn);

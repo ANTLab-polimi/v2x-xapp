@@ -95,10 +95,13 @@ class V2XPreScheduling:
 
     def update_reports(self, reports: List[MillicarUeSingleReport]):
         # iterate over the reports an update the data
+        logger = logging.getLogger("")
         self._is_data_updated = True
+        logger.debug("Start updating reports")
         for _report in reports:
             # update the user report
             self._update_preoptimization_data(_report.ue_id, _report)
+        logger.debug("Finished updating reports")
 
     # get 
     def get_all_users_buffer_status(self) -> List[Tuple[int, int, float, float, int, int]]:

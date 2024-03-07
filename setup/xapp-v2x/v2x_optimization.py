@@ -9,7 +9,7 @@ import datetime
 import logging
 
 _JSON_TIMESTAMP = 'time'
-_USABLE_SYMBOLS_PER_SLOT = 8
+_USABLE_SYMBOLS_PER_SLOT = 12
 _SYMBOL_START_SLOT = 0
 
 
@@ -29,28 +29,28 @@ ModulationSchemeForMcs = [
 ]
 
 # by default there are 12 subcarriers of RB, 1 of each is used for reference signal, remining only 11
-def get_payload_size(mcs: int, rbNum:int, usefulSC:int = 11):
+def get_payload_size(mcs: int, rbNum:int, usefulSC:int = 11) -> int:
     rscElement = usefulSC * rbNum
     Rcode = McsEcrTable[mcs]
     Qm = ModulationSchemeForMcs[mcs]
     spectralEfficiency = rscElement * Qm * Rcode
-    return spectralEfficiency / 8
+    return int(np.floor(spectralEfficiency / 8))
 
 
 
 # the sci format 2A has an overhead 5 bytes along the data part size
-def calculate_tb_size(mcs:int, subchannelSize: int, assignedSubchannels:int, availableSymbols:int):
+def calculate_tb_size(mcs:int, availableSymbols:int, subchannelSize: int = 50, assignedSubchannels:int = 50) -> int:
     return get_payload_size(mcs=mcs, rbNum=subchannelSize*assignedSubchannels*availableSymbols)
 
-def calculate_needed_nr_rbs_per_tb_size(mcs:int, tb_size:int, usefulSC:int = 11):
+def calculate_needed_nr_rbs_per_tb_size(mcs:int, tb_size:int, usefulSC:int = 11) -> int:
     # subchannel size is preconfigured, the assigned subchannels and available symbols might change
     Rcode = McsEcrTable[mcs]
     Qm = ModulationSchemeForMcs[mcs]
-    min_nr_rbs_needed = np.ceil(tb_size*8/(Qm * Rcode*usefulSC))
+    min_nr_rbs_needed = int(np.ceil(tb_size*8/(Qm * Rcode*usefulSC)))
     return min_nr_rbs_needed
 
-def calculate_needed_symbols_per_rbs(num_rbs, subchannel_size: int = 50, num_subchannels: int = 50):
-    return np.ceil(num_rbs/(num_subchannels*subchannel_size))
+def calculate_needed_symbols_per_rbs(num_rbs, subchannel_size: int = 50, num_subchannels: int = 50) -> int:
+    return int(np.ceil(num_rbs/(num_subchannels*subchannel_size)))
 
 
 # The scheduling happening here needs to have information about the following:
@@ -71,6 +71,7 @@ class V2XFormulation:
     ):
         self.preoptimize: V2XPreScheduling = preoptimize
         self.plmn = plmn
+        self.lcid:int = 4 # default value of lcid in ns3 - should be updated
         self.available_symbols_per_sl=14
         self.subchannel_size = 50 # accounted in number of rbs per subchannel
         self.control_channel_rbs = 10
@@ -101,7 +102,9 @@ class V2XFormulation:
             # _tuple[3] is reservation period and _tuple[2] is head of line
             self._all_buffer_status.sort(key=lambda _tuple: _tuple[3] -  _tuple[2]) 
             self._buffer_served = [False]*len(self._all_buffer_status)
-            self._needed_rbs_per_buffer = [calculate_needed_nr_rbs_per_tb_size(self.mcs, _buffer_status_tuple[UserPreoptimization.BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._all_buffer_status]
+            # the added 5 byte are included of the SCI message format 2
+            # it will hold the mcs for decoding facilitation
+            self._needed_rbs_per_buffer = [5+calculate_needed_nr_rbs_per_tb_size(self.mcs, _buffer_status_tuple[UserPreoptimization.BUFFER_SIZE_INDEX]) for _buffer_status_tuple in self._all_buffer_status]
             self._needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._needed_rbs_per_buffer]
             self._served_symbols_per_buffer = [0]*len(self._needed_symbols_per_buffer)
             self._buffer_being_served_ind = 0
@@ -112,9 +115,9 @@ class V2XFormulation:
             self._harq_needed_symbols_per_buffer = [calculate_needed_symbols_per_rbs(num_rbs) for num_rbs in self._harq_needed_rbs_per_buffer]
             self._harq_served_symbols_per_buffer = [0]*len(self._harq_needed_symbols_per_buffer)
             self._harq_buffer_being_served_ind = 0
-            logger = logging.getLogger('')
-            logger.debug(f"Update buffer status: size {len(self._all_buffer_status)}, data")
-            logger.debug(self._all_buffer_status)
+            # logger = logging.getLogger('')
+            # logger.debug(f"Update buffer status: size {len(self._all_buffer_status)}, data")
+            # logger.debug(self._all_buffer_status)
 
     def _add_source_scheduling_list(self, source_user_scheduling: List[SourceUserScheduling],
                                    source_ue_id: int, dest_ue_id: int,
@@ -124,17 +127,31 @@ class V2XFormulation:
                                    subchannel_start: int, subchannel_length: int ,
                                    nr_sl_harq_id: int= -1
                                    ):
+        # create list of slrlcpudinfo
+        # get tbsize from the Number of served symbols assinged to the user
+        # always tx sci1A for decoding
+        _tb_size = calculate_tb_size(self.mcs, sym_length) 
+        _sl_rlc_pdu_info: List[SlRlcPduInfo] = [SlRlcPduInfo(lcid=self.lcid, size=int(_tb_size))]
         _single_sched = SingleScheduling(m_frameNum=frame, 
                                 m_subframeNum=subframe,
                                 m_slotNum=slot, 
                                 m_numerology = numerology, 
                                 dstL2Id = self._all_buffer_status[self._buffer_being_served_ind][1],
                                 ndi=ndi,
-                                priority=0,
+                                rv=2,# from GetRv in nr-sl-ue-mac-scheduler-ns3 which indicated the number of slot allocation
+                                # in our case we only have 1 slot allocation and the mapping of rv for that is 2
+                                priority=7, # default value in pscch database
+                                slRlcPduInfo = _sl_rlc_pdu_info,
+                                mcs=self.mcs,
                                 slPsschSymStart = sym_start,
                                 slPsschSymLength = sym_length,
                                 slPsschSubChStart = subchannel_start,
                                 slPsschSubChLength = subchannel_length,
+                                txSci1A=False, # for the moment we won't send the pscch messages
+                                slPscchSymStart=0, # fist symbol in each slot is reserved for the sending of scch
+                                slPscchSymLength=1,
+                                maxNumPerReserve=1,
+                                # numSlPscchRbs=
                                 )
         
         _filter_source_user = list(filter(lambda source_sched: source_sched.ue_id == source_ue_id, source_user_scheduling))
@@ -174,6 +191,7 @@ class V2XFormulation:
 
     # the scheduled scheme is a simple TDMA, where we assign a symbol over the entire bandwidth
     def schedule_slot(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
+        # TODO: Consider the SCI message header
         # first update the buffer status if new data has arrived
         self._update_resource_request_by_priority()
 
@@ -182,19 +200,70 @@ class V2XFormulation:
             (self._harq_buffer_being_served_ind == len(self._harq_buffer_status)):
             return []
 
-        _used_symbols_in_slot = 0
+        # the first symbol in each slot is reserved for the scch message
+        _used_symbols_in_slot = 1
         # we exit the while loop when we have used whole of the symbols in the slot
         # or we have serverd all of the buffer
         source_user_scheduling: List[SourceUserScheduling] = []
         logger = logging.getLogger('')
-        logger.debug(f"Schedule slot ({frame}, {subframe}, {slot})")
-        logger.debug(f"Number of scheduling request {len(self._needed_rbs_per_buffer)}")
-        logger.debug(f"Needed rbs per buffer {self._needed_rbs_per_buffer}")
-        logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
-        logger.debug(f"Served symbols per buffer {self._served_symbols_per_buffer}")
-        logger.debug(f"Buffer being served ind {self._buffer_being_served_ind}")
-        logger.debug(f"Harq buffer needed symbols {self._harq_needed_symbols_per_buffer}")
+        # logger.debug(f"Schedule slot ({frame}, {subframe}, {slot})")
+        # logger.debug(f"Number of scheduling request {len(self._needed_rbs_per_buffer)}")
+        # logger.debug(f"Needed rbs per buffer {self._needed_rbs_per_buffer}")
+        # logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
+        # logger.debug(f"Buffer being served ind {self._buffer_being_served_ind}")
+        # logger.debug(f"Harq buffer needed symbols {self._harq_needed_symbols_per_buffer}")
         # we serve first all the harq buffer
+        _num_max_iter = _USABLE_SYMBOLS_PER_SLOT
+        _iter_ind = 0
+        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
+               (self._buffer_being_served_ind < len(self._served_symbols_per_buffer)):
+            # first case is when the available symbols in slot is smaller than what needed by buffer
+            # we assign all the symbols to that buffer
+            _iter_ind+=1
+            _served_symbols = 0
+            _needed_unserved_symbols = (self._needed_symbols_per_buffer[self._buffer_being_served_ind] - \
+                                        self._served_symbols_per_buffer[self._buffer_being_served_ind])
+            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            _finished_serving_user = False
+            if  _needed_unserved_symbols > _remaining_available_symbols:
+                _served_symbols = _remaining_available_symbols
+                self._served_symbols_per_buffer[self._buffer_being_served_ind]+=_served_symbols
+                _used_symbols_in_slot += _served_symbols
+            else:
+                # we assign the amount of resources needed
+                _served_symbols = _needed_unserved_symbols
+                self._served_symbols_per_buffer[self._buffer_being_served_ind] += _served_symbols
+                # move to the next buffer until
+                _finished_serving_user = True
+                _used_symbols_in_slot += _served_symbols
+            # logger.debug(f"Served symbols {_served_symbols}, used symbols in slot {_used_symbols_in_slot}")
+            if _served_symbols > 0:
+                # add data to the list
+
+                # logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
+                self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][0],
+                                                dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][1],
+                                                frame=frame, subframe=subframe, slot=slot, 
+                                                numerology=2, ndi=1,
+                                                sym_start = _used_symbols_in_slot, 
+                                                sym_length=_served_symbols,
+                                                subchannel_start=0, 
+                                                subchannel_length=self.subchannel_size
+                                                )
+            # move to the next user if we finished serving this user
+            if _finished_serving_user:
+                self._buffer_being_served_ind +=1    
+
+            if (_iter_ind >_USABLE_SYMBOLS_PER_SLOT ):
+                logger.debug(f"A probable loop")
+                logger.debug(f"Serving ind {self._buffer_being_served_ind}, needed sym {_needed_unserved_symbols}" +\
+                         f" remaining {_remaining_available_symbols}")
+                
+                logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
+                logger.debug(f"Needed symbols per buffer { self._served_symbols_per_buffer}")
+                break
+
         while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
                (self._harq_buffer_being_served_ind < len(self._harq_needed_symbols_per_buffer)):
             # first case is when the available symbols in slot is smaller than what needed by buffer
@@ -203,6 +272,7 @@ class V2XFormulation:
             _needed_unserved_symbols = (self._harq_needed_symbols_per_buffer[self._harq_buffer_being_served_ind] - \
                                         self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind])
             _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            _finished_serving_user = False
             if _needed_unserved_symbols>_remaining_available_symbols:
                 _served_symbols = _remaining_available_symbols
                 self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind]+=_served_symbols
@@ -212,7 +282,7 @@ class V2XFormulation:
                 _served_symbols = _needed_unserved_symbols
                 self._harq_served_symbols_per_buffer[self._harq_buffer_being_served_ind] += _served_symbols
                 # move to the next buffer until
-                self._harq_buffer_being_served_ind +=1
+                _finished_serving_user = True
                 _used_symbols_in_slot += _served_symbols
             
             if _served_symbols > 0:
@@ -228,49 +298,11 @@ class V2XFormulation:
                                                  subchannel_length=self.subchannel_size,
                                                  nr_sl_harq_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_ID_INDEX]
                                                  )
-
-        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
-               (self._buffer_being_served_ind < len(self._served_symbols_per_buffer)):
-            # first case is when the available symbols in slot is smaller than what needed by buffer
-            # we assign all the symbols to that buffer
-            
-            _served_symbols = 0
-            _needed_unserved_symbols = (self._needed_symbols_per_buffer[self._buffer_being_served_ind] - \
-                                        self._served_symbols_per_buffer[self._buffer_being_served_ind])
-            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
-            logger.debug(f"Serving ind {self._buffer_being_served_ind}, needed sym {_needed_unserved_symbols}" +\
-                         f" remaining {_remaining_available_symbols}")
-            _finished_serving_user = False
-            if  _needed_unserved_symbols > _remaining_available_symbols:
-                _served_symbols = _remaining_available_symbols
-                
-                self._served_symbols_per_buffer[self._buffer_being_served_ind]+=_served_symbols
-                _used_symbols_in_slot += _served_symbols
-            else:
-                # we assign the amount of resources needed
-                _served_symbols = _needed_unserved_symbols
-                self._served_symbols_per_buffer[self._buffer_being_served_ind] += _served_symbols
-                # move to the next buffer until
-                _finished_serving_user = True
-                _used_symbols_in_slot += _served_symbols
-            logger.debug(f"Served symbols {_served_symbols}, used symbols in slot {_used_symbols_in_slot}")
-            if _served_symbols > 0:
-                # add data to the list
-                logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
-                self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
-                                                source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][0],
-                                                dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][1],
-                                                frame=frame, subframe=subframe, slot=slot, 
-                                                numerology=2, ndi=1,
-                                                sym_start = _used_symbols_in_slot, 
-                                                sym_length=_served_symbols,
-                                                subchannel_start=0, 
-                                                subchannel_length=self.subchannel_size
-                                                )
-            # move to the next user if we finished serving this user
             if _finished_serving_user:
-                self._buffer_being_served_ind +=1        
+                self._harq_buffer_being_served_ind +=1    
 
+        # logger.debug(f"Served symbols per buffer {self._served_symbols_per_buffer}")
+        # logger.debug(f"Harq buffer served symbols {self._harq_served_symbols_per_buffer}")
         return source_user_scheduling
 
 

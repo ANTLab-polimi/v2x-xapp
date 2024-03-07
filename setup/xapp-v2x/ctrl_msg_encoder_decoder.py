@@ -1,4 +1,5 @@
 import ctypes
+import logging
 from ctypes import POINTER, Structure, create_string_buffer
 from ctypes import c_long, c_size_t, c_int, c_uint8, c_char_p, c_void_p
 from ctypes import c_int16, c_uint16, c_uint32, c_ubyte, cast
@@ -7,6 +8,9 @@ from typing import Any, List
 import numpy as np
 
 from v2x_ric_message_format import SourceUserScheduling, UserScheduling, SingleScheduling, SlRlcPduInfo
+
+# from run_xapp_parallel import _JSON_SOURCE_SCHEDULING
+# import transform_xml_to_dict_v2x as transform
 
 class BaseStructure(ctypes.Structure):
 
@@ -161,15 +165,18 @@ class v2x_user_nr_sl_slot_alloc_t(BaseStructure):
 
 class v2x_source_user_nr_sl_slot_alloc_t(BaseStructure):
     _fields_ = [
-        ("ue_id", c_uint16),
+        ("source_id", c_uint16),
         ("destSchedulingVectorSize", c_uint32),
         ("destScheduling", POINTER(v2x_user_nr_sl_slot_alloc_t)),# type vector with size 0
     ]
 
-    _defaults_ = { "ue_id" : 0,
+    _defaults_ = { "source_id" : 0,
                  }
 
     def __init__(self, **kwargs):
+        # logger = logging.getLogger('')
+        # logger.debug("Dest scheduling")
+        # logger.debug(kwargs)
         # print ("Dest scheduling")
         # print(kwargs)
         _dict_user_scheduling = kwargs['destScheduling']
@@ -275,7 +282,7 @@ class RicControlMessageEncoder:
         return _data_length, _data_bytes
     
     def decode_e2ap_ric_indication_msg(self, input_bytes):
-
+        logger = logging.getLogger('')
         _asn1_decode_e2ap = self._wrap_asn1_function(
         'decode_e2ap_to_xml', POINTER(e2ap_stcp_buffer_t), 
         [POINTER(c_uint8), c_size_t]) 
@@ -289,7 +296,7 @@ class RicControlMessageEncoder:
         try:
             _data_length = msg.contents.msg_length
             _bytes_consumed = msg.contents.bytes_consumed
-            print("Data length " + str(_data_length) + " bytes consumed " + str(_bytes_consumed))
+            logger.debug("Data length " + str(_data_length) + " bytes consumed " + str(_bytes_consumed))
             _buffer_res = ctypes.cast(msg.contents.msg_buffer, ctypes.POINTER(ctypes.c_ubyte * _data_length))
             _data_bytes = bytes(_buffer_res.contents)
             # print("Data length " + str(_data_length))
@@ -389,13 +396,25 @@ def generate_sched_data() -> List[SourceUserScheduling]:
     v2x_scheduling_source_users[3].add_dest_user(v2x_scheduling_all_users[1+2])
     return v2x_scheduling_source_users
 
+def test_single_source_sched():
+    _data_dict = {'Plmn': '111', 'SourceScheduling': [{'source_id': 1, 'destScheduling': [{'ue_id': 1, 'cReselCounter': 1, 'slResoReselCounter': 1, 'prevSlResoReselCounter': 1, 'nrSlHarqId': -1, 'nSelected': 1, 'tbTxCounter': 0, 'userScheduling': [{'m_frameNum': 3006, 'm_subframeNum': 2, 'm_slotNum': 0, 'm_numerology': 2, 'dstL2Id': 1, 'ndi': 1, 'rv': 255, 'priority': 0, 'slRlcPduInfo': [{'lcid': 4, 'size': 19800}], 'mcs': 14, 'numSlPscchRbs': 65535, 'slPscchSymStart': 65535, 'slPscchSymLength': 65535, 'slPsschSymStart': 3, 'slPsschSymLength': 3, 'slPsschSubChStart': 0, 'slPsschSubChLength': 50, 'maxNumPerReserve': 65535, 'txSci1A': False, 'slotNumInd': 0}, {'m_frameNum': 3006, 'm_subframeNum': 2, 'm_slotNum': 0, 'm_numerology': 2, 'dstL2Id': 1, 'ndi': 1, 'rv': 255, 'priority': 0, 'slRlcPduInfo': [{'lcid': 4, 'size': 33000}], 'mcs': 14, 'numSlPscchRbs': 65535, 'slPscchSymStart': 65535, 'slPscchSymLength': 65535, 'slPsschSymStart': 8, 'slPsschSymLength': 5, 'slPsschSubChStart': 0, 'slPsschSubChLength': 50, 'maxNumPerReserve': 65535, 'txSci1A': False, 'slotNumInd': 0}]}]}]}
+    _plmn = _data_dict.get("Plmn")
+    # the data that should be sent to the send callback should be the list of source user scheduling
+    v2x_scheduling_all_users: List[SourceUserScheduling] = [SourceUserScheduling(-1, _source_sched) for _source_sched in _data_dict.get("SourceScheduling")]
+    _msg_encoder = RicControlMessageEncoder()
+    data_length, data_bytes = _msg_encoder.encode_scheduling_plmn(v2x_scheduling_all_users, _plmn)
+    print(f"Data length {data_length}")
+    print("Data bytes")
+    print(data_bytes.hex())
 
 if __name__ == '__main__':
-    _encoder = RicControlMessageEncoder()
-    print("decoding data")
-    v2x_scheduling_source_users = generate_sched_data()
+    test_single_source_sched()
+    # _encoder = RicControlMessageEncoder()
+    # print("decoding data")
+    # v2x_scheduling_source_users = generate_sched_data()
 
-    _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_source_users, "111")
-    print("Encoded data length " + str(_data_length))
+    # _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_source_users, "111")
+    # print("Encoded data length " + str(_data_length))
 
-    print("Ended")
+    # print("Ended")
+

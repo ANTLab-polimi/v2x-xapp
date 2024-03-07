@@ -184,9 +184,9 @@ int send_payload_socket(const void* buf, int buf_size, std::string dest_ip) {
       std::cout <<  "ERROR: SEND to agent " << dest_ip << std::endl;
       return -2;
   }
-  else {
-      std::cout << "Message sent with size " << " " << sent_size << std::endl;
-  }
+  // else {
+  //     std::cout << "Message sent with size " << sent_size << std::endl;
+  // }
 
   return 0;
 }

@@ -357,11 +357,15 @@ class V2XSciMessage:
             self.header._slSciStage2Format = 1
         except KeyError:
             pass
+        except AttributeError:
+            pass
         try:
             _sci_message_tag:str = reduce(operator.getitem, _SCI_TAG_V2X, input_dict)
             _sci_message_tag.replace(" ", "")
             self.tag = V2XSciTag(_sci_message_tag, self._decoder)
         except KeyError:
+            pass
+        except AttributeError:
             pass
         try:
             self.rsrp:float = float(reduce(operator.getitem, _SCI_RSRP, input_dict))
@@ -764,9 +768,9 @@ class MillicarUeSingleReport:
             self.sci_messages = V2XSciMessages(_field_value, self._decoder)
             self.user_packet_delays = PacketDelaySingleUserConnectionsDelay(_field_value)
         if name_field == _GENERATING_MILLICAR_NODE_POSITION_X:
-            self.position_x = int(reduce(operator.getitem, ['valueReal'], _single_data_dict))
+            self.position_x = int(float(reduce(operator.getitem, ['valueReal'], _single_data_dict)))
         if name_field == _GENERATING_MILLICAR_NODE_POSITION_Y:
-            self.position_y = int(reduce(operator.getitem, ['valueReal'], _single_data_dict))
+            self.position_y = int(float(reduce(operator.getitem, ['valueReal'], _single_data_dict)))
         if name_field == _GENERATING_MILLICAR_FRAME:
             self.frame = int(reduce(operator.getitem, ['valueInt'], _single_data_dict))
         if name_field == _GENERATING_MILLICAR_SUBFRAME:

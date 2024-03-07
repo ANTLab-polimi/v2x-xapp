@@ -113,7 +113,7 @@ if __name__ == "__main__":
              sys.exit(1);
              
     result = parseConfigJson(config);
-    time.sleep(10);
+    time.sleep(3);
     if result == False:
         print("Error parsing json. Not executing xAPP");
         sys.exit(1);

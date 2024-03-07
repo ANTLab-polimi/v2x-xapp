@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 import time
-# import os
+import logging
 
 _V2X_FRAMENUM = "frameNum"
 _V2X_SUBFRAMENUM = "subframeNum"
@@ -41,23 +41,34 @@ _V2X_TIME = "time"
 
 
 class SlRlcPduInfo:
-    def __init__(self, lcid = 0, size = 0):
+    def __init__(self, lcid = 0, size = 0, from_dict=None):
         self.lcid = lcid
         self.size = size
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
 
     def is_valid(self):
         return True
     
     def to_dict_c(self):
         return {
-            "lcid":self.lcid,
-            "size": self.size
+            _V2X_LCID: self.lcid,
+            _V2X_SIZE: self.size
         }
     def __str__(self) -> str:
         return str(self.lcid) + "," + str(self.size)
     
     def str_var_order() -> str:
         return  _V2X_LCID + "," + _V2X_SIZE
+    
+    def _from_dict(self):
+        self.lcid = self._from_dict_data[_V2X_LCID]
+        self.size = self._from_dict_data[_V2X_SIZE]
+
+    def __eq__(self, __value: object) -> bool:
+        return (self.lcid == __value.lcid) & (self.size == __value.lcid)
 
 
 class SingleScheduling:
@@ -74,7 +85,8 @@ class SingleScheduling:
                 slPsschSubChStart = int(np.iinfo(np.uint16).max), 
                 slPsschSubChLength = int(np.iinfo(np.uint16).max), 
                 maxNumPerReserve = int(np.iinfo(np.uint16).max), 
-                txSci1A: bool=False, slotNumInd =  0):
+                txSci1A: bool=False, slotNumInd =  0, 
+                from_dict=None):
         self._m_frameNum = m_frameNum
         self._m_subframeNum = m_subframeNum
         self._m_slotNum = m_slotNum
@@ -95,6 +107,10 @@ class SingleScheduling:
         self._maxNumPerReserve = maxNumPerReserve
         self._txSci1A = txSci1A
         self._slotNumInd = slotNumInd
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
 
     def is_valid(self):
         return all( [_slRlcPduInfo.is_valid() for _slRlcPduInfo in self.slRlcPduInfo]) & True
@@ -143,6 +159,28 @@ class SingleScheduling:
                 "txSci1A": self._txSci1A,
                 "slotNumInd": self._slotNumInd}
 
+    def _from_dict(self):
+        self._m_frameNum = self._from_dict_data["m_frameNum"]
+        self._m_subframeNum = self._from_dict_data["m_subframeNum"]
+        self._m_slotNum = self._from_dict_data["m_slotNum"]
+        self._m_numerology = self._from_dict_data["m_numerology"]
+        self._dstL2Id = self._from_dict_data["dstL2Id"]
+        self._ndi = self._from_dict_data["ndi"]
+        self._rv = self._from_dict_data["rv"]
+        self._priority = self._from_dict_data["priority"]
+        self.slRlcPduInfo = [SlRlcPduInfo(from_dict=_ue_report) for _ue_report in self._from_dict_data["slRlcPduInfo"]]
+        self._mcs = self._from_dict_data["mcs"]
+        self._numSlPscchRbs = self._from_dict_data["numSlPscchRbs"]
+        self._slPscchSymStart = self._from_dict_data["slPscchSymStart"]
+        self._slPscchSymLength = self._from_dict_data["slPscchSymLength"]
+        self._slPsschSymStart = self._from_dict_data["slPsschSymStart"]
+        self._slPsschSymLength = self._from_dict_data["slPsschSymLength"]
+        self._slPsschSubChStart = self._from_dict_data["slPsschSubChStart"]
+        self._slPsschSubChLength = self._from_dict_data["slPsschSubChLength"]
+        self._maxNumPerReserve = self._from_dict_data["maxNumPerReserve"]
+        self._txSci1A = self._from_dict_data["txSci1A"]
+        self._slotNumInd = self._from_dict_data["slotNumInd"]
+
     def single_line_str(self)-> str:
         return str(self._m_frameNum) + "," + str(self._m_subframeNum) + "," + str(self._m_slotNum) + "," + \
               str(self._m_numerology) + "," + str(self._dstL2Id) + "," + str(self._ndi) + "," + str(self._rv) + \
@@ -153,7 +191,7 @@ class SingleScheduling:
                 "," + str(self._slotNumInd)
 
     def __str__(self) -> str:
-        return self.single_line_str() + "," + str(self.slRlcPduInfo)
+        return self.single_line_str() + "," + str([str(_rlc_pdu_info) for _rlc_pdu_info in self.slRlcPduInfo])
 
     def str_var_order_single_line()->str:
         return  _V2X_FRAMENUM + "," + \
@@ -182,6 +220,28 @@ class SingleScheduling:
     def add_sl_rlc_pdu_info(self, lcid = 0, size = 0):
         self.slRlcPduInfo.append(SlRlcPduInfo(lcid=lcid, size=size))
 
+    def __eq__(self, __value: object) -> bool:
+        return ((self._m_frameNum == __value._m_frameNum) & \
+        (self._m_subframeNum == __value._m_subframeNum) & \
+        (self._m_slotNum == __value._m_slotNum) & \
+        (self._m_numerology == __value._m_numerology) & \
+        (self._dstL2Id == __value._dstL2Id) & \
+        (self._ndi == __value._ndi) & \
+        (self._rv == __value._rv) & \
+        (self._priority == __value._priority) & \
+        (self.slRlcPduInfo == __value.slRlcPduInfo) & \
+        (self._mcs == __value._mcs) & \
+        (self._numSlPscchRbs == __value._numSlPscchRbs) & \
+        (self._slPscchSymStart == __value._slPscchSymStart) & \
+        (self._slPscchSymLength == __value._slPscchSymLength) & \
+        (self._slPsschSymStart == __value._slPsschSymStart) & \
+        (self._slPsschSymLength == __value._slPsschSymLength) & \
+        (self._slPsschSubChStart == __value._slPsschSubChStart) & \
+        (self._slPsschSubChLength == __value._slPsschSubChLength) & \
+        (self._maxNumPerReserve == __value._maxNumPerReserve) & \
+        (self._txSci1A == __value._txSci1A) & \
+        (self._slotNumInd == __value._slotNumInd))
+
 
 class UserScheduling:
     def __init__(self, ue_id, 
@@ -190,7 +250,8 @@ class UserScheduling:
                  prevSlResoReselCounter = int(np.iinfo(np.uint8).max), 
                  nrSlHarqId = int(np.iinfo(np.uint8).max), 
                  nSelected = int(np.iinfo(np.uint8).max), 
-                 tbTxCounter = int(np.iinfo(np.uint8).max)) -> None:
+                 tbTxCounter = int(np.iinfo(np.uint8).max), 
+                 from_dict=None) -> None:
         self.ue_id = ue_id
         self.cReselCounter = cReselCounter
         self.slResoReselCounter = slResoReselCounter
@@ -199,6 +260,10 @@ class UserScheduling:
         self.nSelected = nSelected
         self.tbTxCounter = tbTxCounter
         self.user_scheduling:List[SingleScheduling] = []
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
         
     def add_single_scheduling(self, single_sched: SingleScheduling):
         self.user_scheduling.append(single_sched)
@@ -214,9 +279,19 @@ class UserScheduling:
             "tbTxCounter" : self.tbTxCounter,
             "userScheduling" : [_singleSched.to_dict_c() for _singleSched in self.user_scheduling]
             }
+
+    def _from_dict(self):
+        self.ue_id = self._from_dict_data["ue_id"]
+        self.cReselCounter = self._from_dict_data["cReselCounter"]
+        self.slResoReselCounter = self._from_dict_data["slResoReselCounter"]
+        self.prevSlResoReselCounter = self._from_dict_data["prevSlResoReselCounter"]
+        self.nrSlHarqId = self._from_dict_data["nrSlHarqId"]
+        self.nSelected = self._from_dict_data["nSelected"]
+        self.tbTxCounter = self._from_dict_data["tbTxCounter"]
+        self.user_scheduling = [SingleScheduling(from_dict=_ue_report) for _ue_report in self._from_dict_data["userScheduling"]]
     
     def __str__(self) -> str:
-        return self.single_line_str() + "," + str(self.user_scheduling)
+        return self.single_line_str() + "," + str([str(_user_sched) for _user_sched in  self.user_scheduling])
     
     def single_line_str(self)-> str:
         return str(self.ue_id) + "," + str(self.cReselCounter) + "," + str(self.slResoReselCounter) + "," + \
@@ -234,12 +309,26 @@ class UserScheduling:
 
     def str_var_order() -> str:
         return  UserScheduling.str_var_order_single_line() + "," + _V2X_USERSCHEDULING
+    
+    def __eq__(self, __value: object) -> bool:
+        return ((self.ue_id == __value.ue_id) & \
+        (self.cReselCounter == __value.cReselCounter) & \
+        (self.slResoReselCounter == __value.slResoReselCounter) & \
+        (self.prevSlResoReselCounter == __value.prevSlResoReselCounter) & \
+        (self.nrSlHarqId == __value.nrSlHarqId) & \
+        (self.nSelected == __value.nSelected) & \
+        (self.tbTxCounter == __value.tbTxCounter) & \
+        (self.user_scheduling == __value.user_scheduling))
 
 
 class SourceUserScheduling:
-    def __init__(self, ue_id) -> None:
+    def __init__(self, ue_id, from_dict=None) -> None:
         self.ue_id = ue_id
         self.destination_scheduling:List[UserScheduling] = []
+        self._from_dict_data = from_dict
+        if self._from_dict_data is not None:
+            # we parse the dict and update the fields
+            self._from_dict()
         
     def add_dest_user(self, dest_sched: UserScheduling):
         self.destination_scheduling.append(dest_sched) 
@@ -250,8 +339,12 @@ class SourceUserScheduling:
             "destScheduling" : [_destSched.to_dict_c() for _destSched in self.destination_scheduling]
             }
     
+    def _from_dict(self):
+        self.ue_id = self._from_dict_data["source_id"]
+        self.destination_scheduling = [UserScheduling(-1, from_dict=_ue_report) for _ue_report in self._from_dict_data["destScheduling"]]
+    
     def __str__(self) -> str:
-        return str(self.ue_id) + "," + str(self.destination_scheduling)
+        return str(self.ue_id) + "," + str([str(_dest_sched) for _dest_sched in self.destination_scheduling])
 
     def str_var_order() -> str:
         return _V2X_SOURCE_UE_ID + "," + _V2X_SOURCE_DESTINATION_USER_SCHEDULING
@@ -262,8 +355,12 @@ class SourceUserScheduling:
             SingleScheduling.str_var_order_single_line() + "," + \
             SlRlcPduInfo.str_var_order()
     
+    def __eq__(self, __value: object) -> bool:
+        return (self.ue_id == __value.ue_id) & (self.destination_scheduling == __value.destination_scheduling)
+    
     def write_data_to_file(self, filename = "/home/traces/ric_messages.txt", plmn = "111"):
         # open the file and write the data in recursive mode
+        logger = logging.getLogger('')
         with open(filename, mode="a+") as file:
             for _dest_sched in self.destination_scheduling:
                 _dest_sched_str = _dest_sched.single_line_str()
@@ -275,6 +372,7 @@ class SourceUserScheduling:
                                             _dest_sched_str + "," + \
                                             _user_sched_str + "," + \
                                             _rlc_pdu_str
+                        # logger.debug(f"Writing to file: {_single_row_str}")
                         file.write(str(time.time())+ "," + plmn + "," + _single_row_str + "\n")
                         
 
