@@ -39,7 +39,8 @@ def get_payload_size(mcs: int, rbNum:int, usefulSC:int = 11) -> int:
 
 
 # the sci format 2A has an overhead 5 bytes along the data part size
-def calculate_tb_size(mcs:int, availableSymbols:int, subchannelSize: int = 50, assignedSubchannels:int = 50) -> int:
+# we have only 1 subchannel for the configured bandwidht and 50 rbs per subchannel
+def calculate_tb_size(mcs:int, availableSymbols:int, subchannelSize: int = 50, assignedSubchannels:int = 1) -> int:
     return get_payload_size(mcs=mcs, rbNum=subchannelSize*assignedSubchannels*availableSymbols)
 
 def calculate_needed_nr_rbs_per_tb_size(mcs:int, tb_size:int, usefulSC:int = 11) -> int:
@@ -49,7 +50,7 @@ def calculate_needed_nr_rbs_per_tb_size(mcs:int, tb_size:int, usefulSC:int = 11)
     min_nr_rbs_needed = int(np.ceil(tb_size*8/(Qm * Rcode*usefulSC)))
     return min_nr_rbs_needed
 
-def calculate_needed_symbols_per_rbs(num_rbs, subchannel_size: int = 50, num_subchannels: int = 50) -> int:
+def calculate_needed_symbols_per_rbs(num_rbs, subchannel_size: int = 50, num_subchannels: int = 1) -> int:
     return int(np.ceil(num_rbs/(num_subchannels*subchannel_size)))
 
 
@@ -74,11 +75,13 @@ class V2XFormulation:
         self.lcid:int = 4 # default value of lcid in ns3 - should be updated
         self.available_symbols_per_sl=14
         self.subchannel_size = 50 # accounted in number of rbs per subchannel
+        self.number_subchannels = 1 # depends on the preconfig; our example has only 1 subchannel
         self.control_channel_rbs = 10
         self.useful_subcarriers_sl = 11 # 12 total - 1 for the reference signal
         self.mcs = 14 # preconfigured
         # the only configurable parameter is the number of subchannels assigned to an user
         # this will hold all the buffer status as indicated in pre optimize
+        # source, dest, upper limit, resercation period, num packets and buffer size
         self._all_buffer_status: List[Tuple[int, int, float, float, int, int]] = []
         # a boolean list to hold information of whethe the buffer has been served or not
         self._buffer_served: List[bool] = []
@@ -93,14 +96,15 @@ class V2XFormulation:
         self._harq_needed_rbs_per_buffer: List[int] = []
         self._harq_needed_symbols_per_buffer: List[int] = []
         self._harq_buffer_being_served = 0
+        self._connection_anticipate_schedule_slot_ind = 0
 
     # the function will get all the tuple of all the connections
     # and will sort them based on the sorting order given by the formula in point 1.
     def _update_resource_request_by_priority(self):
         if self.preoptimize.is_data_updated():
             self._all_buffer_status = self.preoptimize.get_all_users_buffer_status()
-            # _tuple[3] is reservation period and _tuple[2] is head of line
-            self._all_buffer_status.sort(key=lambda _tuple: _tuple[3] -  _tuple[2]) 
+            # _tuple[3] is reservation period and _tuple[2] is delay upper limit
+            self._all_buffer_status.sort(key=lambda _tuple: _tuple[UserPreoptimization.BUFFER_RESERVATION_PERIOD] -  _tuple[UserPreoptimization.BUFFER_UPPER_LIMIT]) 
             self._buffer_served = [False]*len(self._all_buffer_status)
             # the added 5 byte are included of the SCI message format 2
             # it will hold the mcs for decoding facilitation
@@ -118,6 +122,8 @@ class V2XFormulation:
             # logger = logging.getLogger('')
             # logger.debug(f"Update buffer status: size {len(self._all_buffer_status)}, data")
             # logger.debug(self._all_buffer_status)
+            # update the anticipated traffic scheduling
+            self._connection_anticipate_schedule_slot_ind = 0
 
     def _add_source_scheduling_list(self, source_user_scheduling: List[SourceUserScheduling],
                                    source_ue_id: int, dest_ue_id: int,
@@ -125,7 +131,8 @@ class V2XFormulation:
                                    numerology: int, ndi: int,
                                    sym_start: int, sym_length: int,
                                    subchannel_start: int, subchannel_length: int ,
-                                   nr_sl_harq_id: int= -1
+                                   nr_sl_harq_id: int= -1,
+                                   txSci1A=False
                                    ):
         # create list of slrlcpudinfo
         # get tbsize from the Number of served symbols assinged to the user
@@ -136,7 +143,8 @@ class V2XFormulation:
                                 m_subframeNum=subframe,
                                 m_slotNum=slot, 
                                 m_numerology = numerology, 
-                                dstL2Id = self._all_buffer_status[self._buffer_being_served_ind][1],
+                                # dstL2Id = self._all_buffer_status[self._buffer_being_served_ind][1],
+                                dstL2Id = dest_ue_id,
                                 ndi=ndi,
                                 rv=2,# from GetRv in nr-sl-ue-mac-scheduler-ns3 which indicated the number of slot allocation
                                 # in our case we only have 1 slot allocation and the mapping of rv for that is 2
@@ -147,11 +155,11 @@ class V2XFormulation:
                                 slPsschSymLength = sym_length,
                                 slPsschSubChStart = subchannel_start,
                                 slPsschSubChLength = subchannel_length,
-                                txSci1A=False, # for the moment we won't send the pscch messages
+                                txSci1A=txSci1A, # for the moment we won't send the pscch messages
                                 slPscchSymStart=0, # fist symbol in each slot is reserved for the sending of scch
                                 slPscchSymLength=1,
                                 maxNumPerReserve=1,
-                                # numSlPscchRbs=
+                                numSlPscchRbs=10,
                                 )
         
         _filter_source_user = list(filter(lambda source_sched: source_sched.ue_id == source_ue_id, source_user_scheduling))
@@ -189,8 +197,244 @@ class V2XFormulation:
                 _dest_sched.nrSlHarqId = nr_sl_harq_id
                 # nr_sl_harq_id
 
-    # the scheduled scheme is a simple TDMA, where we assign a symbol over the entire bandwidth
+    def schedule_anticipated_traffic(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
+        source_user_scheduling: List[SourceUserScheduling] = []
+        # if there is no data to anticipate scheduling return empty list
+        if (len(self._all_buffer_status) ==0 ) & (len(self._harq_buffer_status) ==0):
+            return []
+        logger = logging.getLogger('')
+        _start_symbol_in_slot = 1
+        _sched_symbols = 0
+        _source = -1
+        _dest_ue_id = -1
+        if len(self._all_buffer_status) > 0:
+            _source = self._all_buffer_status[ self._connection_anticipate_schedule_slot_ind][UserPreoptimization.BUFFER_SOURCE_ID]
+            _dest_ue_id = self._all_buffer_status[ self._connection_anticipate_schedule_slot_ind][UserPreoptimization.BUFFER_DEST_ID]
+        # elif len(self._harq_buffer_status) > 0:
+        #     # we take the harq buffer as reference
+        #     _source = self._harq_buffer_status[ self._connection_anticipate_schedule_slot_ind][UserPreoptimization.HARQ_SOURCE_ID]
+        #     _dest_ue_id = self._harq_buffer_status[ self._connection_anticipate_schedule_slot_ind][UserPreoptimization.HARQ_DEST_ID]
+        # check if there exist data of harq
+        _harq_buffer_list = list(filter(lambda _tuple: ((_tuple[UserPreoptimization.HARQ_SOURCE_ID] == _source ) & (_tuple[UserPreoptimization.HARQ_DEST_ID] == _dest_ue_id)), self._harq_buffer_status))
+        if (_source>-1) & (_dest_ue_id>-1):
+            if len(_harq_buffer_list)>0:
+                # divide equally harq data and new tx
+                _sched_symbols += int(np.ceil(_USABLE_SYMBOLS_PER_SLOT/2))
+                self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                        source_ue_id= _source,
+                                                        dest_ue_id=_dest_ue_id,
+                                                        frame=frame, subframe=subframe, slot=slot, 
+                                                        numerology=2, ndi=0,
+                                                        sym_start = _start_symbol_in_slot, 
+                                                        sym_length=_sched_symbols,
+                                                        subchannel_start=0, 
+                                                        subchannel_length=self.number_subchannels,
+                                                        nr_sl_harq_id=_harq_buffer_list[0][UserPreoptimization.HARQ_ID_INDEX]
+                                                        )
+                _start_symbol_in_slot += _sched_symbols
+            # allocate the remaining for the new data 
+            _sched_symbols = _USABLE_SYMBOLS_PER_SLOT - _start_symbol_in_slot+1
+            logger.debug(f"Anticipated scheduling  for con ({_source}, {_dest_ue_id}) symb harq {(1, _start_symbol_in_slot)} and new ({_start_symbol_in_slot}, {_sched_symbols})")
+            
+            self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                source_ue_id= _source,
+                                                dest_ue_id=_dest_ue_id,
+                                                frame=frame, subframe=subframe, slot=slot, 
+                                                numerology=2, ndi=1,
+                                                sym_start = _start_symbol_in_slot,  
+                                                sym_length=_sched_symbols,
+                                                subchannel_start=0, 
+                                                subchannel_length=self.number_subchannels,
+                                                # txSci1A=True
+                                                txSci1A = True# we only send 1 pscch per slotW
+                                                )
+            
+        # user served; move to the next user in circular way
+        self._connection_anticipate_schedule_slot_ind = (self._connection_anticipate_schedule_slot_ind+1) % len(self._all_buffer_status)
+        return source_user_scheduling
+    
     def schedule_slot(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
+        self._update_resource_request_by_priority()
+        # check if data scheduling has finished
+        if (self._buffer_being_served_ind == len(self._all_buffer_status)) & \
+            (self._harq_buffer_being_served_ind == len(self._harq_buffer_status)):
+            return self.schedule_anticipated_traffic(frame, subframe, slot) #[]
+        # the first symbol in each slot is reserved for the scch message
+        _used_symbols_in_slot = 0
+        _start_symbol_in_slot = 1
+        source_user_scheduling: List[SourceUserScheduling] = []
+        logger = logging.getLogger('')
+        # logger.debug(f"Schedule slot ({frame}, {subframe}, {slot})")
+        logger.debug("\n")
+        logger.debug(f"Number of scheduling request {len(self._needed_rbs_per_buffer)}")
+        # logger.debug(f"Needed rbs per buffer {self._needed_rbs_per_buffer}")
+        logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
+        logger.debug(f"Served symbols per buffer { self._served_symbols_per_buffer}")
+        logger.debug(f"Buffer being served ind {self._buffer_being_served_ind}")
+        logger.debug(f"Harq buffer needed symbols {self._harq_needed_symbols_per_buffer}")
+        logger.debug(f"Harq buffer served symbols {self._harq_served_symbols_per_buffer}")
+        logger.debug(f"New data buffer src destination pair {[(_tuple[0], _tuple[1]) for _tuple in self._all_buffer_status]}")
+        # we serve a single user in a slot and just decide the nr of symbols per harq and ndi
+        # _harq_symbols
+        # the buffer status is updated in base user requests
+        _user_id_to_serve = self._all_buffer_status[self._buffer_being_served_ind][0]
+        _unserved_symbols_for_user = 0
+        # _remaining_symbols = _USABLE_SYMBOLS_PER_SLOT
+        # get the symbols needed for harq and new traffic
+
+        
+        _list_new_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._all_buffer_status) if _value[0] == _user_id_to_serve]
+        _unserved_symbols_new_data_array = [self._needed_symbols_per_buffer[_ind] - self._served_symbols_per_buffer[_ind] for _ind in _list_new_data_buffer_status_indexes]
+        _scheduled_symbols_new_data = [0]*len(_unserved_symbols_new_data_array)
+
+        _list_harq_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._harq_buffer_status) if _value[0] == _user_id_to_serve]
+        _unserved_symbols_harq_array = [self._harq_needed_symbols_per_buffer[_ind]+1 - self._harq_served_symbols_per_buffer[_ind] for _ind in _list_harq_data_buffer_status_indexes]
+        _scheduled_symbols_harq_data = [0]*len(_unserved_symbols_harq_array)
+
+        logger.debug(f"Scheduling user with id {_user_id_to_serve} with unserved harq {_unserved_symbols_harq_array} and new data unserved {_unserved_symbols_new_data_array}")
+
+        # _unserved_symbols_new_data = int(sum(_unserved_symbols_new_data_array))
+        # _unserved_symbols_harq = int(sum(_unserved_symbols_harq_array))
+
+        _unserved_symbols_harq_array_ind = 0
+        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
+               (_unserved_symbols_harq_array_ind < len(_unserved_symbols_harq_array)):
+            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            if  _unserved_symbols_harq_array[_unserved_symbols_harq_array_ind] > _remaining_available_symbols:
+                # it exceeds the need, thus we assign the remaining available symbols
+                _scheduled_symbols_harq_data[_unserved_symbols_harq_array_ind] = _remaining_available_symbols
+                # user all the symbols
+                _used_symbols_in_slot +=_remaining_available_symbols
+            else:
+                # we have more remaining symbols than needed, thus we assing the needed symbols
+                _scheduled_symbols_harq_data[_unserved_symbols_harq_array_ind] = _unserved_symbols_harq_array[_unserved_symbols_harq_array_ind]
+                _used_symbols_in_slot+=_unserved_symbols_harq_array[_unserved_symbols_harq_array_ind]
+                # go the next buffer
+                _unserved_symbols_harq_array_ind+=1
+
+        # the part of new data
+        _unserved_symbols_new_data_array_ind = 0
+        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
+               (_unserved_symbols_new_data_array_ind < len(_unserved_symbols_new_data_array)):
+            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            if _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]>_remaining_available_symbols:
+                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _remaining_available_symbols
+                _used_symbols_in_slot +=_remaining_available_symbols
+            else:
+                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
+                _used_symbols_in_slot += _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
+                _unserved_symbols_new_data_array_ind+=1
+
+        logger.debug(f"Scheduled symbols new data {_scheduled_symbols_new_data} and harq data {_scheduled_symbols_harq_data}")
+
+        _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+        _num_active_buffers = len(_scheduled_symbols_new_data) + len(_scheduled_symbols_harq_data)
+        # if there is reamaining symbols in slot we distribute them as them by adding a symbol at each buffer
+        if (_remaining_available_symbols > 0) & (_num_active_buffers > 0):
+            _symbols_to_add_per_buffer =int( np.floor(_remaining_available_symbols/_num_active_buffers)) # added to all the buffers _symbols_to_add_per_buffer
+            _symbols_to_add_to_first_buffers = _remaining_available_symbols%_num_active_buffers # added by 1 to first _symbols_to_add_to_first_buffers buffers
+            # add complete symbols per buffer
+            _scheduled_symbols_harq_data = [num_symb + _symbols_to_add_per_buffer for num_symb in _scheduled_symbols_harq_data]
+            _scheduled_symbols_new_data = [num_symb + _symbols_to_add_per_buffer for num_symb in _scheduled_symbols_new_data]
+            
+            # add remaining symbols to the first buffers starting with the harq buffers
+            # if we have harq buffer,then we check if the single symbols to add fit all the buffers or not
+            # we take the min between the symbols which can be given and the size of the vector
+            # so that, first we do not assign more than _USABLE_SYMBOLS_PER_SLOT and second assign to the active harq buffers
+            _symbols_to_add_to_harq_buffer_last_element_index = min(_symbols_to_add_to_first_buffers, len(_scheduled_symbols_harq_data))
+            if _symbols_to_add_to_harq_buffer_last_element_index>0:
+                # meas that the length of harq buffer is greater than 0, thus we assign the symbols
+                for _ind in range(_symbols_to_add_to_harq_buffer_last_element_index):
+                    _scheduled_symbols_harq_data[_ind] = _scheduled_symbols_harq_data[_ind]+1
+
+            _symbols_to_add_to_harq_buffer_last_element_index = max(0, _symbols_to_add_to_first_buffers - _symbols_to_add_to_harq_buffer_last_element_index)
+            if _symbols_to_add_to_harq_buffer_last_element_index>0:
+                # meas that the length of harq buffer is greater than 0, thus we assign the symbols
+                for _ind in range(_symbols_to_add_to_harq_buffer_last_element_index):
+                    _scheduled_symbols_new_data[_ind] = _scheduled_symbols_new_data[_ind]+1
+
+        logger.debug(f"After redestribution symbols new data {_scheduled_symbols_new_data} and harq data {_scheduled_symbols_harq_data}")
+
+        # check the data to be sent
+        for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_harq_data):
+
+            # add data to the list
+            # logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
+            logger.debug(f"Scheduled harq s {self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_SOURCE_ID]}" + \
+                         f" & dest {self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_DEST_ID]} " +\
+                        f" in slot ({frame}, {subframe}, {slot}) " 
+                        f" sym start {_start_symbol_in_slot} & sym length {_sched_symbols}")
+            _original_harq_buffer_status_ind = _list_harq_data_buffer_status_indexes[_ind_filtered_array]
+            self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                 source_ue_id= self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_SOURCE_ID],
+                                                 dest_ue_id=self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_DEST_ID],
+                                                 frame=frame, subframe=subframe, slot=slot, 
+                                                 numerology=2, ndi=0,
+                                                 sym_start = _start_symbol_in_slot, 
+                                                 sym_length=_sched_symbols,
+                                                 subchannel_start=0, 
+                                                 subchannel_length=self.number_subchannels,
+                                                 nr_sl_harq_id=self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_ID_INDEX]
+                                                 )
+            # change the start symbols for the next scheduling
+            _start_symbol_in_slot += _sched_symbols
+            # need to change the vectors 
+            # check if after shceduling harq user we change the index and move to a new buffer
+            # if what scheduled reaches what needed, we set served as what needed
+            if self._harq_served_symbols_per_buffer[_original_harq_buffer_status_ind] + _sched_symbols >= self._harq_needed_symbols_per_buffer[_original_harq_buffer_status_ind]:
+                self._harq_served_symbols_per_buffer[_original_harq_buffer_status_ind] = self._harq_needed_symbols_per_buffer[_original_harq_buffer_status_ind]
+            else:
+                self._harq_served_symbols_per_buffer[_original_harq_buffer_status_ind] += _sched_symbols
+
+        # new data scheduling
+        for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_new_data):
+            _original_new_data_buffer_status_ind = _list_new_data_buffer_status_indexes[_ind_filtered_array]
+            logger.debug(f"Scheduled new data s {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID]}" + \
+                         f" & dest {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID]} " +\
+                        f" in slot ({frame}, {subframe}, {slot}) " 
+                        f" sym start {_start_symbol_in_slot} & sym length {_sched_symbols}")
+            self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                source_ue_id= self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID],
+                                                dest_ue_id=self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID],
+                                                frame=frame, subframe=subframe, slot=slot, 
+                                                numerology=2, ndi=1,
+                                                sym_start = _start_symbol_in_slot, 
+                                                sym_length=_sched_symbols,
+                                                subchannel_start=0, 
+                                                subchannel_length=self.number_subchannels,
+                                                # txSci1A=True
+                                                txSci1A = _ind_filtered_array == 0# we only send 1 pscch per slotW
+                                                )
+            _start_symbol_in_slot += _sched_symbols
+            if self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] + _sched_symbols >= self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]:
+                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] = self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]
+            else:
+                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind]+=_sched_symbols
+        # at the end we should update the reports of served symbols
+        # update the buffer index
+        _unserve_bytes_list = [a-b for a,b in zip(self._needed_symbols_per_buffer, self._served_symbols_per_buffer)]
+        try:
+            # the first index in buffer for which the difference of needed and served is 0
+            self._buffer_being_served_ind = next(_ind for (_ind, _item) in enumerate(_unserve_bytes_list) if _item>0)
+        except StopIteration:
+            self._buffer_being_served_ind = len(self._needed_symbols_per_buffer)
+        except TypeError:
+            self._buffer_being_served_ind = len(self._needed_symbols_per_buffer)
+
+        _unserve_bytes_list = [a-b for a,b in zip(self._harq_needed_symbols_per_buffer, self._harq_served_symbols_per_buffer)]
+        try:
+            # the first index in buffer for which the difference of needed and served is 0
+            self._harq_buffer_being_served_ind = next(_ind for (_ind, _item) in enumerate(_unserve_bytes_list) if _item>0)
+        except StopIteration:
+            self._harq_buffer_being_served_ind = len(self._harq_needed_symbols_per_buffer)
+        except TypeError:
+            self._harq_buffer_being_served_ind = len(self._harq_needed_symbols_per_buffer)
+        logger.debug("\n")
+        return source_user_scheduling
+        
+
+    # the scheduled scheme is a simple TDMA, where we assign a symbol over the entire bandwidth
+    def schedule_slot_multi_user_per_slot(self, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
         # TODO: Consider the SCI message header
         # first update the buffer status if new data has arrived
         self._update_resource_request_by_priority()
@@ -198,7 +442,7 @@ class V2XFormulation:
         # check if data scheduling has finished
         if (self._buffer_being_served_ind == len(self._all_buffer_status)) & \
             (self._harq_buffer_being_served_ind == len(self._harq_buffer_status)):
-            return []
+            return self.schedule_anticipated_traffic(frame, subframe, slot)
 
         # the first symbol in each slot is reserved for the scch message
         _used_symbols_in_slot = 1
@@ -249,7 +493,7 @@ class V2XFormulation:
                                                 sym_start = _used_symbols_in_slot, 
                                                 sym_length=_served_symbols,
                                                 subchannel_start=0, 
-                                                subchannel_length=self.subchannel_size
+                                                subchannel_length=self.number_subchannels
                                                 )
             # move to the next user if we finished serving this user
             if _finished_serving_user:
@@ -295,7 +539,7 @@ class V2XFormulation:
                                                  sym_start = _used_symbols_in_slot, 
                                                  sym_length=_served_symbols,
                                                  subchannel_start=0, 
-                                                 subchannel_length=self.subchannel_size,
+                                                 subchannel_length=self.number_subchannels,
                                                  nr_sl_harq_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_ID_INDEX]
                                                  )
             if _finished_serving_user:

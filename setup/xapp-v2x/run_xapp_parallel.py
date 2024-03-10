@@ -38,55 +38,114 @@ _ALLOWED_USED_SF_SLOTS = {
 
 _ALLOWED_SUBFRAMES = [1,2,4,6,7,9]
 
-def get_next_valid_slot(frame: int, subframe: int, slot:int ):
-    def _get_max_allowed_slots_in_ref_subframe(subframe):
-        try:
-            _max_allowed_slots_in_ref_subframe = max(_ALLOWED_USED_SF_SLOTS[subframe])+1
-        except ValueError:
-            # empty allowed slots
-            _max_allowed_slots_in_ref_subframe = 0
-        except KeyError:
-            # empty allowed slots
-            _max_allowed_slots_in_ref_subframe = 0
-        return _max_allowed_slots_in_ref_subframe
+PATTERN = np.array([2, 2, 2, 1, 0, 0, 0, 0, 0, 0])
+BITMAP = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
+# given the slot number define if it is a sidelink slot or not
+def _normalize_sfnsf(frame:int, subframe: int, slot: int, numerology: int = 2):
+    # get the normalized slot number
+    _normalized = int(slot)
+    _num_slot_per_subframe = pow(2, int(numerology))
+    _normalized += int(subframe)*_num_slot_per_subframe
+    _num_subframes_per_frame = 10
+    _normalized += int(frame)*_num_subframes_per_frame*_num_slot_per_subframe
+    return int(_normalized)
 
+def _get_phy_slot(pattern, bitmap):
+    _final_bitmap = []
+    _bitmap_ind = 0
+    # for _bitmap_ind, _bitmap_value in enumerate(_bitmap):
+    # to be sure there is no loop
+    if len([_elem==0  for _elem in pattern]) == 0:
+        return []
+    if len([_elem==1  for _elem in bitmap]) == 0:
+        return []
+    while(_bitmap_ind< len(bitmap)):
+        for _pattern_ind, _pattern_val in enumerate(pattern):
+            _bitmap_value = bitmap[_bitmap_ind]
+            if _pattern_val!=0:
+                _final_bitmap.append(0)
+            else:
+                if _bitmap_value == 1:
+                    _final_bitmap.append(1)
+                else:
+                    _final_bitmap.append(0)
+                _bitmap_ind+=1
+    return _final_bitmap
+
+def _is_sidelink_slot(final_bitmap: List[int], frame:int, subframe: int, slot: int, numerology: int = 2):
+    _normalize_slot = _normalize_sfnsf(frame, subframe, slot, numerology)
+    return final_bitmap[_normalize_slot%len(final_bitmap)]
+
+def get_next_valid_slot(final_bitmap: List[int], frame: int, subframe: int, slot:int ):
     _is_new_subframe = False
     _is_new_frame = False
-    _is_valid_slot = False
-    _transition_from_unallowed_subframe = False
-    while (not _is_valid_slot):
-        _max_allowed_slots_in_ref_subframe = _get_max_allowed_slots_in_ref_subframe(subframe)
-        if _max_allowed_slots_in_ref_subframe == 0:
-            subframe = (subframe + 1)%10
-            slot = -1 # it will add to the next iteration and start from slot = 0
-            if subframe == 0:
-                _is_new_frame = True
-            _transition_from_unallowed_subframe = True
-        else:
-            if slot >= _max_allowed_slots_in_ref_subframe:
-                _is_new_subframe = True
-                slot = 0
-            else:
-                slot = (slot+1)%_max_allowed_slots_in_ref_subframe
-                _is_new_subframe = (slot==0) & (not _transition_from_unallowed_subframe)
-            # in case the slot goes again to 0, it means a new subframe has
-            # started, thus we add by 1
-            subframe = (subframe + (1 if _is_new_subframe else 0))%10
-            if subframe == 0:
-                _is_new_frame = True
-            while (subframe not in _ALLOWED_SUBFRAMES):
-                subframe = (subframe + 1)%10
-                if subframe == 0:
-                    _is_new_frame = True
-                slot = 0
-            try:
-                _is_valid_slot = (subframe in _ALLOWED_SUBFRAMES) & (slot in _ALLOWED_USED_SF_SLOTS[subframe])
-            except KeyError:
-                _is_valid_slot = False
-            
-    # the same logic we deploy for the frame 
-    frame = frame + (1 if _is_new_frame else 0)
-    return frame, subframe, slot
+    _is_valid_slot = False  
+    _next_frame = frame
+    _next_subframe = subframe
+    _next_slot = slot
+    while(not _is_valid_slot):
+        _next_slot = (_next_slot + 1)%pow(2, _NUMEROLOGY)
+        _is_new_subframe = (_next_slot==0)
+        _next_subframe = (_next_subframe + (1 if _is_new_subframe else 0))%10
+        _is_new_frame = (_next_subframe == 0) & _is_new_subframe
+        if _is_new_subframe:
+            _is_new_subframe = False
+        
+        _next_frame = _next_frame + (1 if _is_new_frame else 0)
+        if _is_new_frame:
+            _is_new_frame = False
+        # stop to the next sidelink slot
+        _is_valid_slot = _is_sidelink_slot(final_bitmap, _next_frame, _next_subframe, _next_slot, _NUMEROLOGY)
+
+    return _next_frame, _next_subframe, _next_slot
+
+# def get_next_valid_slot(frame: int, subframe: int, slot:int ):
+#     def _get_max_allowed_slots_in_ref_subframe(subframe):
+#         try:
+#             _max_allowed_slots_in_ref_subframe = max(_ALLOWED_USED_SF_SLOTS[subframe])+1
+#         except ValueError:
+#             # empty allowed slots
+#             _max_allowed_slots_in_ref_subframe = 0
+#         except KeyError:
+#             # empty allowed slots
+#             _max_allowed_slots_in_ref_subframe = 0
+#         return _max_allowed_slots_in_ref_subframe
+#     _is_new_subframe = False
+#     _is_new_frame = False
+#     _is_valid_slot = False
+#     _transition_from_unallowed_subframe = False
+#     while (not _is_valid_slot):
+#         _max_allowed_slots_in_ref_subframe = _get_max_allowed_slots_in_ref_subframe(subframe)
+#         if _max_allowed_slots_in_ref_subframe == 0:
+#             subframe = (subframe + 1)%10
+#             slot = -1 # it will add to the next iteration and start from slot = 0
+#             if subframe == 0:
+#                 _is_new_frame = True
+#             _transition_from_unallowed_subframe = True
+#         else:
+#             if slot >= _max_allowed_slots_in_ref_subframe:
+#                 _is_new_subframe = True
+#                 slot = 0
+#             else:
+#                 slot = (slot+1)%_max_allowed_slots_in_ref_subframe
+#                 _is_new_subframe = (slot==0) & (not _transition_from_unallowed_subframe)
+#             # in case the slot goes again to 0, it means a new subframe has
+#             # started, thus we add by 1
+#             subframe = (subframe + (1 if _is_new_subframe else 0))%10
+#             if subframe == 0:
+#                 _is_new_frame = True
+#             while (subframe not in _ALLOWED_SUBFRAMES):
+#                 subframe = (subframe + 1)%10
+#                 if subframe == 0:
+#                     _is_new_frame = True
+#                 slot = 0
+#             try:
+#                 _is_valid_slot = (subframe in _ALLOWED_SUBFRAMES) & (slot in _ALLOWED_USED_SF_SLOTS[subframe])
+#             except KeyError:
+#                 _is_valid_slot = False
+#     # the same logic we deploy for the frame 
+#     frame = frame + (1 if _is_new_frame else 0)
+#     return frame, subframe, slot
 
 class XmlToDictManager:
     def __init__(self,
@@ -111,6 +170,8 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
     def send_data(v2x_scheduling_all_users: List[SourceUserScheduling], plmn:str):
         data_length, data_bytes = encoder_class.encode_scheduling_plmn(v2x_scheduling_all_users, plmn)
         # we could make a check here that data length is identical to received data length from c++ function
+        with open("/home/traces/msg_size_xapp_to_oran.txt", mode="a+") as file_msg_size:
+            file_msg_size.write(f"{int(time.time())},{plmn},{data_length}\n")
         logger.info('Sending back the data with size .. ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
@@ -311,10 +372,11 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     # logger = logging.getLogger('demo')
     logger = logging.getLogger('')
     logger.info(f"Scheduling main func {plmn}")
+    final_bitmap = _get_phy_slot(PATTERN, BITMAP)
     frame = 0
     subframe = 0
     _plmn = plmn
-    _frame_schedule_until = frame + 10
+    _frame_schedule_until = frame + 1
     _subframe_schedule_until = subframe
     slot = 0
     _data: dict = {}
@@ -364,7 +426,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             slot = _ALLOWED_USED_SF_SLOTS[subframe][0]
             
             frame+=_added_frame # if subframe moved to the new frame (i.e. subframe == 0) we add 1 else we add 0
-            _frame_schedule_until = frame + 10
+            _frame_schedule_until = frame + 1
             _subframe_schedule_until = subframe
             _num_sched_in_single_report = 0
             logger.debug(f"New scheduling from ({frame}, {subframe}) to ({_frame_schedule_until}, {_subframe_schedule_until})")
@@ -387,9 +449,12 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             
             # logger.debug("Q size in get " + str((plmn, queue.qsize())))
             # logger.debug("Start data scheduling")
+            
+            
             v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
+            logger.debug(f"Scheduling slot ({frame}, {subframe}, {slot}), from ({_frame_schedule_until}, {_subframe_schedule_until})")
             # logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
             # logger.debug(str([str(_sched) for _sched in v2x_source_scheduling_all_users]))
             # write data to the file
@@ -413,12 +478,15 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
                 _shared_list_being_optimized[_plmn_ind] = False
                 _shared_list_has_new_ric_command[_plmn_ind] = True
             
-            frame, subframe, slot = get_next_valid_slot(frame, subframe, slot)
+            # frame, subframe, slot = get_next_valid_slot(frame, subframe, slot)
+            frame, subframe, slot = get_next_valid_slot(final_bitmap, frame, subframe, slot)
             # check if all the slot in the needed has been scheduled
             # if so we set _block_queue to true to wait for new data to save 
             # cpu usage
-            # logger.debug(f"Scheduling slot ({frame}, {subframe}, {slot}), from ({_frame_schedule_until}, {_subframe_schedule_until})")
-            if (frame >= _frame_schedule_until) & ( subframe > _subframe_schedule_until):
+            # logger.debug(f"Next slot ({frame}, {subframe}, {slot})")
+            # if (frame >= _frame_schedule_until) & ( subframe > _subframe_schedule_until):
+            # uniquely identify frame and subframe so not to create confusions
+            if ((frame*10+subframe)>(_frame_schedule_until*10+_subframe_schedule_until)):
                 logger.info("Scheduling finished, blocking queue for next data report")
                 _block_queue = True
                 _is_scheduled_needed = False
@@ -445,6 +513,9 @@ def recreate_report_files():
         f.write(_fields_name_str)
     file = open("/home/traces/data_buffer.txt", mode="wb")
     file.close()
+    # the file for the message size
+    with open("/home/traces/msg_size_xapp_to_oran.txt", mode="w") as file_msg_size:
+        file_msg_size.write(f"time,plmn,dataLength\n")
 
 def handle_optimization_thread(is_test_mode: bool=False):
     # in total we define 50 queues for 50 simulation instances at max we can run in a server
@@ -456,7 +527,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
         # in test mode we do not want to delete the received reports before
         recreate_report_files()
 
-    _all_queues = [mp.Queue() for _ in range(2)]
+    _all_queues = [mp.Queue() for _ in range(8)]
     _all_preopt_objs = [V2XPreScheduling() for _ in range(len(_all_queues))]
     _all_sched_objs = [V2XFormulation(_all_preopt_objs[_ind], str(_ind + 111)) for _ind in range(len(_all_queues))]
     
@@ -645,14 +716,16 @@ def test_schedule_working():
     _total_bytes_consumed = 0
     _nr_msg_read = 0
     _nr_min_msg_print = 0
-    _nr_max_msg_print = 4
+    _nr_max_msg_print = 30000
+    _rec_msg_start_ind = 90
+    _rec_msg_end_ind = 104 # _rec_msg_start_ind +6
     while(_total_bytes_consumed < _all_data_length):
         _data_buffer, _data_length, _bytes_consumed =  _msg_encoder.decode_e2ap_ric_indication_msg(_data[_total_bytes_consumed:])
         # print(f"data legnth {_data_length} and bytes consumed {_bytes_consumed}")
         if _data_buffer is not None:
             _nr_msg_read+=1
             _total_bytes_consumed+=_bytes_consumed
-            logger.debug(f"Message read {_nr_msg_read} total bytes consumed {_total_bytes_consumed} ")
+            # logger.debug(f"Message read {_nr_msg_read} total bytes consumed {_total_bytes_consumed} ")
             _decoded_msg = _data_buffer.decode('utf-8')
             _list_received_msgs.append(_decoded_msg)
             # if _nr_msg_read>=_nr_min_msg_print:
@@ -660,7 +733,10 @@ def test_schedule_working():
             if _nr_msg_read>=_nr_max_msg_print:
                 break
     # print("Checing the received reports")
-    for _msg in _list_received_msgs:
+    _new_reports_completed = False
+    for _ind, _msg in enumerate(_list_received_msgs[_rec_msg_start_ind:_rec_msg_end_ind]):
+    # while()
+        logger.debug(f"Msg index {_ind}")
         # print("Received data")
         # print(_msg)
         parse_xml_msg(_msg, _msg_encoder, _transform_list)
@@ -668,7 +744,7 @@ def test_schedule_working():
         # print(f"size of tranform list {len(_transform_list)}")
         # print(_transform_list[0].transform.to_dict())
         for _transform in _transform_list:
-            print(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
+            logger.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
             if _transform.transform.has_received_all_reports():
                 # insert in queue
                 # update data from the preoptimization 
@@ -687,9 +763,10 @@ def test_schedule_working():
                 _shared_list_data[_plmn_ind] = str(_data)
                 _shared_list_data_updated[_plmn_ind] = True
                 _transform.transform.reset()
+                _check_ric_commands_to_be_sent(None)
     # generate and send data    
-    while True:
-        _check_ric_commands_to_be_sent(None)
+    # while True:
+    #     _check_ric_commands_to_be_sent(None)
 
 
 if __name__ == '__main__':

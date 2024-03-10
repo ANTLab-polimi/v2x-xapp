@@ -75,7 +75,8 @@ def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tup
             _list_of_ric_messages.append(_data_buffer.decode('utf-8'))
         else:
             print("Cannot decode data")
-            break
+            return _list_of_ric_messages
+            # break
     if len(_list_of_ric_messages) > 0:
         return _list_of_ric_messages
 

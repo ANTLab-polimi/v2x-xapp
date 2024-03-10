@@ -991,8 +991,10 @@ class XmlToDictDataTransform:
     def _parse_message_ues_single_report(self, input_dict: Mapping, header_collection_time: int) -> List:
         _message_dict = reduce(operator.getitem, _MESSAGE_PART, input_dict)
         _matched_ues_dict = {}
+        logger = logging.getLogger("")
         # print("MEssage dict ")
         # print(_message_dict)
+        # logging.debug(f"Data of dict {_message_dict}")
         try:
             _matched_ues_dict = reduce(operator.getitem, _LIST_OF_MATCHED_UES, _message_dict)
             self.num_of_reports = int(reduce(operator.getitem, _CUCP_PM_REPORTS_NUMBER, _message_dict))
@@ -1001,29 +1003,22 @@ class XmlToDictDataTransform:
         except TypeError:
             # the data in the _LIST_OF_MATCHED_UES are incomplete
             return []
-        print(f"Num of reports {self.num_of_reports}")
+        logger.debug(f"Num of reports {self.num_of_reports}")
+        
         try:
             _reports_per_user_list = []
-            if isinstance(_matched_ues_dict, list):
-                for _imsi_data_report in _matched_ues_dict:
-                    single_report = MillicarUeSingleReport(_imsi_data_report, self._decoder, header_collection_time)
-                    single_report.parse()
-                    # print("print ue single report ")
-                    # print(single_report.to_dict())
-                    if single_report.is_valid():
-                        _reports_per_user_list.append(single_report)
-                    # add to the number of receivef reports
-                    self.num_of_received_reports += 1
-                    print(f"Num of reports received {self.num_of_received_reports}")
-            else:
-                single_report = MillicarUeSingleReport(_matched_ues_dict, self._decoder, header_collection_time)
+            if not isinstance(_matched_ues_dict, list):
+                _matched_ues_dict = [_matched_ues_dict]
+            for _imsi_data_report in _matched_ues_dict:
+                single_report = MillicarUeSingleReport(_imsi_data_report, self._decoder, header_collection_time)
                 single_report.parse()
                 # print("print ue single report ")
                 # print(single_report.to_dict())
                 if single_report.is_valid():
                     _reports_per_user_list.append(single_report)
+                # add to the number of receivef reports
                 self.num_of_received_reports += 1
-                print(f"Num of reports received {self.num_of_received_reports}")
+                logger.debug(f"Num of reports received {self.num_of_received_reports}")
             return _reports_per_user_list
         except KeyError:
             pass

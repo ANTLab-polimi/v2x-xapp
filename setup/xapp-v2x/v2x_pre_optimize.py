@@ -13,9 +13,20 @@ from more_itertools import locate
 # to provide the necessary information
 
 class UserPreoptimization:
+    BUFFER_SOURCE_ID = 0
+    BUFFER_DEST_ID = 1
+    BUFFER_LOWER_LIMIT = 2
+    BUFFER_RESERVATION_PERIOD = 3
+    BUFFER_NUM_PACKETS = 4
     BUFFER_SIZE_INDEX = 5
-    HARQ_BUFFER_SIZE_INDEX = 3
+    BUFFER_UPPER_LIMIT = 6
+    HARQ_SOURCE_ID = 0
+    HARQ_DEST_ID = 1
     HARQ_ID_INDEX = 2
+    HARQ_BUFFER_SIZE_INDEX = 3
+    HARQ_NUM_PACKETS_INDEX = 4
+    
+    
     def __init__(self, ue_id: int = -1, 
                  head_of_line_packet_delay: List[Tuple[int, int, float, float, int, int]]=[], 
                  retx_buffer_size: List[Tuple[int, int, int, int, int]] = [],
@@ -50,11 +61,15 @@ class UserPreoptimization:
         for _con in data.user_packet_delays.all_connections_delays:
             for _delay_intervals in _con.delayIntervals:
                 _interval_group_id = _delay_intervals.lowerInterval
+                _upper_limit = _delay_intervals.upperInterval
                 self.head_of_line_packet_delay.append(
-                    (self.ue_id, _con.ue_id, _interval_group_id, 
+                    (self.ue_id, _con.ue_id, 
+                     _interval_group_id, 
                      _delay_intervals.reservationPeriod, 
                      _delay_intervals.numberOfPackets,
-                     _delay_intervals.bufferSize)
+                     _delay_intervals.bufferSize,
+                     _upper_limit, #
+                     )
                 )
             for _harq_buff_size in _con.harqBufferSize:
                 self.retx_buffer_size.append(
