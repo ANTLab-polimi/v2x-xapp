@@ -93,7 +93,7 @@ def get_next_valid_slot(final_bitmap: List[int], frame: int, subframe: int, slot
         
         _next_frame = _next_frame + (1 if _is_new_frame else 0)
         if _is_new_frame:
-            _is_new_frame = False
+            _is_new_frame = False 
         # stop to the next sidelink slot
         _is_valid_slot = _is_sidelink_slot(final_bitmap, _next_frame, _next_subframe, _next_slot, _NUMEROLOGY)
 
