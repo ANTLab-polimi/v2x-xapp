@@ -277,7 +277,7 @@ class V2XFormulation:
         # we serve a single user in a slot and just decide the nr of symbols per harq and ndi
         # _harq_symbols
         # the buffer status is updated in base user requests
-        _user_id_to_serve = self._all_buffer_status[self._buffer_being_served_ind][0]
+        _user_id_to_serve = self._all_buffer_status[self._buffer_being_served_ind][UserPreoptimization.BUFFER_SOURCE_ID]
         _unserved_symbols_for_user = 0
         # _remaining_symbols = _USABLE_SYMBOLS_PER_SLOT
         # get the symbols needed for harq and new traffic
