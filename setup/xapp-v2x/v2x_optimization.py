@@ -296,6 +296,19 @@ class V2XFormulation:
         # _unserved_symbols_new_data = int(sum(_unserved_symbols_new_data_array))
         # _unserved_symbols_harq = int(sum(_unserved_symbols_harq_array))
 
+        # the part of new data
+        _unserved_symbols_new_data_array_ind = 0
+        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
+               (_unserved_symbols_new_data_array_ind < len(_unserved_symbols_new_data_array)):
+            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
+            if _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]>_remaining_available_symbols:
+                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _remaining_available_symbols
+                _used_symbols_in_slot +=_remaining_available_symbols
+            else:
+                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
+                _used_symbols_in_slot += _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
+                _unserved_symbols_new_data_array_ind+=1
+
         _unserved_symbols_harq_array_ind = 0
         while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
                (_unserved_symbols_harq_array_ind < len(_unserved_symbols_harq_array)):
@@ -311,19 +324,6 @@ class V2XFormulation:
                 _used_symbols_in_slot+=_unserved_symbols_harq_array[_unserved_symbols_harq_array_ind]
                 # go the next buffer
                 _unserved_symbols_harq_array_ind+=1
-
-        # the part of new data
-        _unserved_symbols_new_data_array_ind = 0
-        while (_used_symbols_in_slot < _USABLE_SYMBOLS_PER_SLOT) & \
-               (_unserved_symbols_new_data_array_ind < len(_unserved_symbols_new_data_array)):
-            _remaining_available_symbols = (_USABLE_SYMBOLS_PER_SLOT - _used_symbols_in_slot)
-            if _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]>_remaining_available_symbols:
-                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _remaining_available_symbols
-                _used_symbols_in_slot +=_remaining_available_symbols
-            else:
-                _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
-                _used_symbols_in_slot += _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
-                _unserved_symbols_new_data_array_ind+=1
 
         logger.debug(f"Scheduled symbols new data {_scheduled_symbols_new_data} and harq data {_scheduled_symbols_harq_data}")
 

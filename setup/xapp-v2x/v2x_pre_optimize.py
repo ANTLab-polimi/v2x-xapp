@@ -58,6 +58,7 @@ class UserPreoptimization:
         # source_ue_id = data.user_packet_delays.ue_id
         # whenever new report comes we update entirely the interval data
         self.head_of_line_packet_delay = []
+        self.retx_buffer_size = []
         for _con in data.user_packet_delays.all_connections_delays:
             for _delay_intervals in _con.delayIntervals:
                 _interval_group_id = _delay_intervals.lowerInterval
@@ -71,12 +72,22 @@ class UserPreoptimization:
                      _upper_limit, #
                      )
                 )
-            for _harq_buff_size in _con.harqBufferSize:
+            # for each delay interval we add the harq buffer
+            # for _harq_buff_size in _con.harqBufferSize:
+            #     self.retx_buffer_size.append(
+            #         self.ue_id, _con.ue_id,
+            #         _harq_buff_size.harqId,
+            #         _harq_buff_size.bufferSize,
+            #         _harq_buff_size.numberOfPackets
+            #     )
+
+            # this is a blind retransmission
+            # for each active flow we add a blind retransmission
                 self.retx_buffer_size.append(
                     self.ue_id, _con.ue_id,
-                    _harq_buff_size.harqId,
-                    _harq_buff_size.bufferSize,
-                    _harq_buff_size.numberOfPackets
+                    np.iinfo(np.uint8).max,
+                    _delay_intervals.bufferSize,
+                    _delay_intervals.numberOfPackets
                 )
 
     
