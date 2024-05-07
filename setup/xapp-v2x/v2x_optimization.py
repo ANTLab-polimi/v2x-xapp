@@ -359,12 +359,13 @@ class V2XFormulation:
         for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_harq_data):
 
             # add data to the list
+            _original_harq_buffer_status_ind = _list_harq_data_buffer_status_indexes[_ind_filtered_array]
             # logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
             logger.debug(f"Scheduled harq s {self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_SOURCE_ID]}" + \
                          f" & dest {self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_DEST_ID]} " +\
                         f" in slot ({frame}, {subframe}, {slot}) " 
                         f" sym start {_start_symbol_in_slot} & sym length {_sched_symbols}")
-            _original_harq_buffer_status_ind = _list_harq_data_buffer_status_indexes[_ind_filtered_array]
+            
             self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
                                                  source_ue_id= self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_SOURCE_ID],
                                                  dest_ue_id=self._harq_buffer_status[_original_harq_buffer_status_ind][UserPreoptimization.HARQ_DEST_ID],
