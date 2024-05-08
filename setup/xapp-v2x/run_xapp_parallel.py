@@ -175,6 +175,7 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
         logger.info('Sending back the data with size .. ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
+        sleep(0.05)
     return send_data
 
 def write_assignment_data_to_file(plmn:str, allImsi: np.ndarray, real_assignments: np.ndarray, 
@@ -236,7 +237,7 @@ def _check_ric_commands_to_be_sent(send_callback):
 
         if len(_ric_command_dict_str_agg) > 0:
             logger.debug(f"Ric command available in the queue with index {_ric_command_ind} with length {len(_ric_command_dict_str_agg)}")
-            _ric_command_dict_str_list = _ric_command_dict_str_agg.split("|")
+            _ric_command_dict_str_list = [_ric_command for _ric_command in _ric_command_dict_str_agg.split("|") if len(_ric_command)>0]
             logger.debug(f"Number of messages in queue {len(_ric_command_dict_str_list)}")
             for _ric_command_dict_str in _ric_command_dict_str_list:
                 if len(_ric_command_dict_str) == 0:
@@ -557,7 +558,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
                 _queue.put(dc)
                 print(str((_plmn, _queue.qsize())), end=" ")
             print()
-        sleep(2)
+        # sleep(2)
 
 def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, 
                   _transform_list: List[XmlToDictManager]) -> XmlToDictManager:

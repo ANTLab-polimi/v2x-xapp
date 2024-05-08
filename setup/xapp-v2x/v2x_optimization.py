@@ -273,21 +273,26 @@ class V2XFormulation:
         logger.debug(f"Buffer being served ind {self._buffer_being_served_ind}")
         logger.debug(f"Harq buffer needed symbols {self._harq_needed_symbols_per_buffer}")
         logger.debug(f"Harq buffer served symbols {self._harq_served_symbols_per_buffer}")
-        logger.debug(f"New data buffer src destination pair {[(_tuple[0], _tuple[1]) for _tuple in self._all_buffer_status]}")
+        logger.debug(f"New data buffer src destination pair {[(_tuple[UserPreoptimization.BUFFER_SOURCE_ID], _tuple[UserPreoptimization.BUFFER_DEST_ID]) for _tuple in self._all_buffer_status]}")
         # we serve a single user in a slot and just decide the nr of symbols per harq and ndi
         # _harq_symbols
         # the buffer status is updated in base user requests
-        _user_id_to_serve = self._all_buffer_status[self._buffer_being_served_ind][UserPreoptimization.BUFFER_SOURCE_ID]
+        # check we have not reached the out of bound 
+        _user_id_to_serve = -1
+        if self._buffer_being_served_ind < len(self._all_buffer_status):
+            _user_id_to_serve = self._all_buffer_status[self._buffer_being_served_ind][UserPreoptimization.BUFFER_SOURCE_ID]
+        elif self._harq_buffer_being_served_ind < len(self._harq_buffer_status):
+            _user_id_to_serve = self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_SOURCE_ID]
         _unserved_symbols_for_user = 0
         # _remaining_symbols = _USABLE_SYMBOLS_PER_SLOT
         # get the symbols needed for harq and new traffic
 
         
-        _list_new_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._all_buffer_status) if _value[0] == _user_id_to_serve]
+        _list_new_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._all_buffer_status) if _value[UserPreoptimization.BUFFER_SOURCE_ID] == _user_id_to_serve]
         _unserved_symbols_new_data_array = [self._needed_symbols_per_buffer[_ind] - self._served_symbols_per_buffer[_ind] for _ind in _list_new_data_buffer_status_indexes]
         _scheduled_symbols_new_data = [0]*len(_unserved_symbols_new_data_array)
 
-        _list_harq_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._harq_buffer_status) if _value[0] == _user_id_to_serve]
+        _list_harq_data_buffer_status_indexes = [_ind for _ind, _value in enumerate(self._harq_buffer_status) if _value[UserPreoptimization.BUFFER_SOURCE_ID] == _user_id_to_serve]
         _unserved_symbols_harq_array = [self._harq_needed_symbols_per_buffer[_ind]+1 - self._harq_served_symbols_per_buffer[_ind] for _ind in _list_harq_data_buffer_status_indexes]
         _scheduled_symbols_harq_data = [0]*len(_unserved_symbols_harq_array)
 
@@ -487,8 +492,8 @@ class V2XFormulation:
 
                 # logger.debug(f"Buffer status of ind {self._buffer_being_served_ind}: {self._all_buffer_status[self._buffer_being_served_ind]}")
                 self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
-                                                source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][0],
-                                                dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][1],
+                                                source_ue_id= self._all_buffer_status[self._buffer_being_served_ind][UserPreoptimization.BUFFER_SOURCE_ID],
+                                                dest_ue_id=self._all_buffer_status[self._buffer_being_served_ind][UserPreoptimization.BUFFER_DEST_ID],
                                                 frame=frame, subframe=subframe, slot=slot, 
                                                 numerology=2, ndi=1,
                                                 sym_start = _used_symbols_in_slot, 
@@ -533,8 +538,8 @@ class V2XFormulation:
             if _served_symbols > 0:
                 # add data to the list
                 self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
-                                                 source_ue_id= self._harq_buffer_status[self._harq_buffer_being_served_ind][0],
-                                                 dest_ue_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][1],
+                                                 source_ue_id= self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_SOURCE_ID],
+                                                 dest_ue_id=self._harq_buffer_status[self._harq_buffer_being_served_ind][UserPreoptimization.HARQ_DEST_ID],
                                                  frame=frame, subframe=subframe, slot=slot, 
                                                  numerology=2, ndi=0,
                                                  sym_start = _used_symbols_in_slot, 
