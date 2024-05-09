@@ -17,8 +17,9 @@ import time
 
 from multiprocessing import shared_memory as shm
 from time import sleep
-from threading import Thread
+from threading import Thread, Timer
 import multiprocessing as mp
+import copy
 
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 _NUMEROLOGY = 2
@@ -175,7 +176,7 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
         logger.info('Sending back the data with size .. ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
-        sleep(0.05)
+        sleep(0.1)
     return send_data
 
 def write_assignment_data_to_file(plmn:str, allImsi: np.ndarray, real_assignments: np.ndarray, 
@@ -208,6 +209,35 @@ def _schedule_data(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_
     
 
     return v2x_source_scheduling_users
+
+def _rearrange_scheduling(sched_list: List[SourceUserScheduling]):
+    _result_sched: List[SourceUserScheduling] = copy.deepcopy(sched_list)
+    for _sched_single in _result_sched:
+        for _dest_sched in _sched_single.destination_scheduling:
+            _l_dest: List[int] = list(set([_single_sched._dstL2Id for _single_sched in _dest_sched.user_scheduling]))
+            _l_single_scheduling_new: List[SingleScheduling] = []
+            for _single_dest in list(_l_dest):
+                _sched_dest_filterNewData = list(filter(lambda _d: (_d._dstL2Id == _single_dest) & (_d._ndi==1), _dest_sched.user_scheduling))
+                _sched_dest_filterReTx = list(filter(lambda _d: (_d._dstL2Id == _single_dest) & (_d._ndi==0), _dest_sched.user_scheduling))
+                _psschSymLenNewData = sum(_single_sched._slPsschSymLength for _single_sched in  _sched_dest_filterNewData)
+                _psschSymLenReTx = sum(_single_sched._slPsschSymLength for _single_sched in  _sched_dest_filterReTx)
+                if _psschSymLenNewData>0:
+                    _single_sched_new_insert = _sched_dest_filterNewData[0]
+                    _single_sched_new_insert._slPsschSymStart = 1
+                    _single_sched_new_insert._slPsschSymLength = _psschSymLenNewData+1
+                    _single_sched_new_insert._txSci1A = True
+                    # append aggregated new data single sched
+                    _l_single_scheduling_new.append(_single_sched_new_insert)
+                if _psschSymLenReTx>0:
+                    _single_sched_new_insert = _sched_dest_filterReTx[0]
+                    _single_sched_new_insert._slPsschSymStart = 1 + _psschSymLenNewData + 1
+                    _single_sched_new_insert._slPsschSymLength = _psschSymLenReTx
+                    _l_single_scheduling_new.append(_single_sched_new_insert)
+                
+            # replace the single scheduling  
+            _dest_sched.user_scheduling = _l_single_scheduling_new
+    return _result_sched
+
 
 def _check_ric_commands_to_be_sent_thread(send_callback):
     _shared_list_ric_command = shm.ShareableList(name="ric_commands")
@@ -363,6 +393,29 @@ def _check_optimization_to_be_executed()->List[dict]:
         print("")
     return _l_to_be_optimized
 
+def _send_unblock_msg(plmn:str):
+    logger = logging.getLogger('')
+    _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
+    _shared_list_ric_command = shm.ShareableList(name="ric_commands")
+    _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
+    _end_msg_dict = {
+        transform._JSON_PLMN: plmn,
+        _JSON_SOURCE_SCHEDULING: []
+    }
+    _plmn_ind = int(plmn) - 111
+    # _final_string_to_add = ("|" if len(_shared_list_ric_command[_plmn_ind])>0 else "") + str(_optimized_dict)
+    _init_length_shared_list =  len(_shared_list_ric_command[_plmn_ind])
+    _final_string = "|" + str(_end_msg_dict )
+    _shared_list_ric_command[_plmn_ind] += _final_string
+    # remove the state of being optimized
+    _shared_list_being_optimized[_plmn_ind] = False
+    _shared_list_has_new_ric_command[_plmn_ind] = True
+    logger.debug(f"Added continue simulation control message; Size from {_init_length_shared_list} to { len(_shared_list_ric_command[_plmn_ind])}")
+
+def newTimer(plmn: str):
+    global unblocking_msg_timer
+    unblocking_msg_timer = Timer(10, _send_unblock_msg, [plmn])
+
 def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation, 
                           v2x_preopt_obj: V2XPreScheduling, plmn: str = "111"):
     _shared_list_being_optimized = shm.ShareableList(name="data_being_optimized")
@@ -381,6 +434,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     _subframe_schedule_until = subframe
     slot = 0
     _data: dict = {}
+    newTimer(_plmn)
     # if we get new data we update the ue reports in the preopt object
     # the updated data shall be used in the optmization object afterwards on the new slot 
     # otherwise we schedule the next coming slot until we reach the interval
@@ -397,6 +451,9 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     while True:
         # if not queue.empty():
         if _block_queue:
+            unblocking_msg_timer.cancel()
+            newTimer(_plmn)
+            unblocking_msg_timer.start()
             _data = queue.get()
             _block_queue = False
             # logger.debug("Data type coming from queue")
@@ -441,10 +498,14 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             logger.debug("Start data scheduling")
             
         else:
+            unblocking_msg_timer.cancel()
+            newTimer(_plmn)
+            unblocking_msg_timer.start()
             # when there is new data we block the queue to get new data
             if not queue.empty():
                 _block_queue = True
         if _is_scheduled_needed:
+            
             # id data is available
             # here we schedule for the next slot until we reach the limit of 1 frame or 10 subframes
             
@@ -452,9 +513,10 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             # logger.debug("Start data scheduling")
             
             
-            v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
+            _tmp_v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
                                                         v2x_preopt_obj, v2x_scheduling_obj,
                                                         frame, subframe, slot)
+            v2x_source_scheduling_all_users: List[SourceUserScheduling] = _rearrange_scheduling(_tmp_v2x_source_scheduling_all_users)
             logger.debug(f"Scheduling slot ({frame}, {subframe}, {slot}), from ({_frame_schedule_until}, {_subframe_schedule_until})")
             # logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
             # logger.debug(str([str(_sched) for _sched in v2x_source_scheduling_all_users]))
@@ -494,11 +556,12 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
                 # if _num_sched_in_single_report == 0:
                 # we send the empty list scheduling to trigger simulation play
                 # we generate empty scheduling data to make sim continue
-                
+
                 _end_msg_dict = {
                     transform._JSON_PLMN: _plmn,
                     _JSON_SOURCE_SCHEDULING: []
                 }
+                # _plmn_ind = int(plmn) - 111
                 # _final_string_to_add = ("|" if len(_shared_list_ric_command[_plmn_ind])>0 else "") + str(_optimized_dict)
                 _init_length_shared_list =  len(_shared_list_ric_command[_plmn_ind])
                 _final_string = "|" + str(_end_msg_dict )
@@ -507,6 +570,10 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
                 _shared_list_being_optimized[_plmn_ind] = False
                 _shared_list_has_new_ric_command[_plmn_ind] = True
                 logger.debug(f"Added continue simulation control message; Size from {_init_length_shared_list} to { len(_shared_list_ric_command[_plmn_ind])}")
+
+                unblocking_msg_timer.cancel()
+                newTimer(_plmn)
+                unblocking_msg_timer.start()
 
 def recreate_report_files():
     with open("/home/traces/ric_messages.txt", 'w') as f:
@@ -558,7 +625,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
                 _queue.put(dc)
                 print(str((_plmn, _queue.qsize())), end=" ")
             print()
-        # sleep(2)
+        sleep(2)
 
 def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder, 
                   _transform_list: List[XmlToDictManager]) -> XmlToDictManager:
@@ -582,7 +649,7 @@ def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder,
 def setup_logger():
     logging_filename = os.path.join(os.getcwd(), 'report.log')
     # logging_filename = '/home/ef-xapp/xapp-logger.log' # os.path.join(os.getcwd(), )
-    logging.basicConfig(level=logging.DEBUG, filename=logging_filename, filemode='a',
+    logging.basicConfig(level=logging.INFO, filename=logging_filename, filemode='a',
                         format='%(asctime)-15s %(levelname)-8s %(message)s')
     
     logger = logging.getLogger('')

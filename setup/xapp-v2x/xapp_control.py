@@ -17,6 +17,9 @@ def open_control_socket(port: int):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4097152)  
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4097152)  
+
     # server = sctp.sctpsocket_tcp(socket.AF_INET)
     # host = socket.gethostname()
     # bind to INADDR_ANY

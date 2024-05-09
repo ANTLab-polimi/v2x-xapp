@@ -137,6 +137,7 @@ class V2XFormulation:
         # create list of slrlcpudinfo
         # get tbsize from the Number of served symbols assinged to the user
         # always tx sci1A for decoding
+        
         _tb_size = calculate_tb_size(self.mcs, sym_length) 
         _sl_rlc_pdu_info: List[SlRlcPduInfo] = [SlRlcPduInfo(lcid=self.lcid, size=int(_tb_size))]
         _single_sched = SingleScheduling(m_frameNum=frame, 
@@ -217,7 +218,8 @@ class V2XFormulation:
         # check if there exist data of harq
         _harq_buffer_list = list(filter(lambda _tuple: ((_tuple[UserPreoptimization.HARQ_SOURCE_ID] == _source ) & (_tuple[UserPreoptimization.HARQ_DEST_ID] == _dest_ue_id)), self._harq_buffer_status))
         if (_source>-1) & (_dest_ue_id>-1):
-            if len(_harq_buffer_list)>0:
+            # if len(_harq_buffer_list)>0:
+            if False:
                 # divide equally harq data and new tx
                 _sched_symbols += int(np.ceil(_USABLE_SYMBOLS_PER_SLOT/2))
                 self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
@@ -360,6 +362,31 @@ class V2XFormulation:
 
         logger.debug(f"After redestribution symbols new data {_scheduled_symbols_new_data} and harq data {_scheduled_symbols_harq_data}")
 
+        # new data scheduling
+        for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_new_data):
+            _original_new_data_buffer_status_ind = _list_new_data_buffer_status_indexes[_ind_filtered_array]
+            logger.debug(f"Scheduled new data s {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID]}" + \
+                         f" & dest {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID]} " +\
+                        f" in slot ({frame}, {subframe}, {slot}) " 
+                        f" sym start {_start_symbol_in_slot} & sym length {_sched_symbols}")
+            self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
+                                                source_ue_id= self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID],
+                                                dest_ue_id=self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID],
+                                                frame=frame, subframe=subframe, slot=slot, 
+                                                numerology=2, ndi=1,
+                                                sym_start = _start_symbol_in_slot, 
+                                                sym_length=_sched_symbols,
+                                                subchannel_start=0, 
+                                                subchannel_length=self.number_subchannels,
+                                                # txSci1A=True
+                                                txSci1A = _ind_filtered_array == 0# we only send 1 pscch per slotW
+                                                )
+            _start_symbol_in_slot += _sched_symbols
+            if self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] + _sched_symbols >= self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]:
+                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] = self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]
+            else:
+                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind]+=_sched_symbols
+
         # check the data to be sent
         for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_harq_data):
 
@@ -392,30 +419,7 @@ class V2XFormulation:
             else:
                 self._harq_served_symbols_per_buffer[_original_harq_buffer_status_ind] += _sched_symbols
 
-        # new data scheduling
-        for _ind_filtered_array, _sched_symbols in enumerate (_scheduled_symbols_new_data):
-            _original_new_data_buffer_status_ind = _list_new_data_buffer_status_indexes[_ind_filtered_array]
-            logger.debug(f"Scheduled new data s {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID]}" + \
-                         f" & dest {self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID]} " +\
-                        f" in slot ({frame}, {subframe}, {slot}) " 
-                        f" sym start {_start_symbol_in_slot} & sym length {_sched_symbols}")
-            self._add_source_scheduling_list(source_user_scheduling = source_user_scheduling, 
-                                                source_ue_id= self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_SOURCE_ID],
-                                                dest_ue_id=self._all_buffer_status[_original_new_data_buffer_status_ind][UserPreoptimization.BUFFER_DEST_ID],
-                                                frame=frame, subframe=subframe, slot=slot, 
-                                                numerology=2, ndi=1,
-                                                sym_start = _start_symbol_in_slot, 
-                                                sym_length=_sched_symbols,
-                                                subchannel_start=0, 
-                                                subchannel_length=self.number_subchannels,
-                                                # txSci1A=True
-                                                txSci1A = _ind_filtered_array == 0# we only send 1 pscch per slotW
-                                                )
-            _start_symbol_in_slot += _sched_symbols
-            if self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] + _sched_symbols >= self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]:
-                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind] = self._needed_symbols_per_buffer[_original_new_data_buffer_status_ind]
-            else:
-                self._served_symbols_per_buffer[_original_new_data_buffer_status_ind]+=_sched_symbols
+        
         # at the end we should update the reports of served symbols
         # update the buffer index
         _unserve_bytes_list = [a-b for a,b in zip(self._needed_symbols_per_buffer, self._served_symbols_per_buffer)]

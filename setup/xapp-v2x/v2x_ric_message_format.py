@@ -138,6 +138,8 @@ class SingleScheduling:
                 _V2X_SLOTNUMIND: self._slotNumInd}
     
     def to_dict_c(self):
+        logger = logging.getLogger('')
+        # logger.debug("ndi to_dict_c in Single Scheduling " + str(self._ndi))
         return {"m_frameNum": self._m_frameNum,
                 "m_subframeNum": self._m_subframeNum,
                 "m_slotNum": self._m_slotNum,
@@ -160,12 +162,14 @@ class SingleScheduling:
                 "slotNumInd": self._slotNumInd}
 
     def _from_dict(self):
+        logger = logging.getLogger('')
         self._m_frameNum = self._from_dict_data["m_frameNum"]
         self._m_subframeNum = self._from_dict_data["m_subframeNum"]
         self._m_slotNum = self._from_dict_data["m_slotNum"]
         self._m_numerology = self._from_dict_data["m_numerology"]
         self._dstL2Id = self._from_dict_data["dstL2Id"]
         self._ndi = self._from_dict_data["ndi"]
+        # logger.debug("ndi from dict in Single Scheduling " + str(self._ndi))
         self._rv = self._from_dict_data["rv"]
         self._priority = self._from_dict_data["priority"]
         self.slRlcPduInfo = [SlRlcPduInfo(from_dict=_ue_report) for _ue_report in self._from_dict_data["slRlcPduInfo"]]
