@@ -19,8 +19,8 @@
 # For clarity: this generates object, not a lib as the CM command implies.
 #
 
-file(GLOB SOURCES "*.cc")
-file(GLOB HEADERS "*.h")
+# file(GLOB SOURCES "*.cc")
+# file(GLOB HEADERS "*.h")
 
 
 add_library( ns3_decode_objects OBJECT ${SOURCES})

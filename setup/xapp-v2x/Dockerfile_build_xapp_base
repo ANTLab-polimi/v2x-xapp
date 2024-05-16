@@ -117,7 +117,10 @@ RUN cd ${STAGE_DIR} \
   && rm -rf rapidjson
 
 
-RUN pip install tensorflow
+RUN apt-get update && apt-get install protobuf-compiler
+
+
+# RUN pip install tensorflow
 
 # install e2sim
 COPY ${CONNECTOR_DIR} ${STAGE_DIR}

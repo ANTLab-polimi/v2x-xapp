@@ -30,6 +30,8 @@
 
 #include "tinyxml2.h"
 
+#include "sl-sci-msg.pb.h"
+
 template<typename T>
 std::vector<int> findItems(std::vector<T> const &v, int target) {
     std::vector<int> indices;
@@ -318,11 +320,19 @@ decode_v2x_sci_header(uint8_t* buffer, size_t buffSize){
 
         uint8_t *bufferHeader = (uint8_t *)calloc(1, s.length());
         memcpy(bufferHeader, bytes, s.length());
-        ns3::Buffer bufferSciHeader = ns3::Buffer();
-        bufferSciHeader.Deserialize(bufferHeader, s.length());
+
+        // ns3::Buffer bufferSciHeader = ns3::Buffer();
+        // bufferSciHeader.Deserialize(bufferHeader, s.length());
+        // ns3::NrSlSciF1aHeader sciHeader = ns3::NrSlSciF1aHeader();
+        // ns3::Buffer::Iterator bufferSciHeaderIt = bufferSciHeader.Begin();
+        // sciHeader.DeserializeForE2(bufferSciHeaderIt);
+    
+        // Protobuff deserialization
         ns3::NrSlSciF1aHeader sciHeader = ns3::NrSlSciF1aHeader();
-        ns3::Buffer::Iterator bufferSciHeaderIt = bufferSciHeader.Begin();
-        sciHeader.DeserializeForE2(bufferSciHeaderIt);
+        ns3::NrSlSciF1aHeaderProto sciHeaderProto = ns3::NrSlSciF1aHeaderProto();        
+        sciHeaderProto.ParseFromArray(bufferHeader, s.length());
+        sciHeader.DeserializeFromProtoBuff(sciHeaderProto);
+
         data = new v2x_sci_header_buffer_t(sciHeader);
         free(bufferHeader);
         delete[] bytes;
@@ -348,11 +358,17 @@ decode_v2x_sci_tag(uint8_t* buffer, size_t buffSize){
         char* bytes = converHexToByte(s);
         uint8_t *bufferTag = (uint8_t *)calloc(1, s.length());
         memcpy(bufferTag, bytes, s.length());
-        ns3::Buffer bufferSciTag = ns3::Buffer();
-        bufferSciTag.Deserialize(bufferTag, s.length());
+
+        // ns3::Buffer bufferSciTag = ns3::Buffer();
+        // bufferSciTag.Deserialize(bufferTag, s.length());
+        // ns3::NrSlMacPduTag sciTag = ns3::NrSlMacPduTag();
+        // ns3::Buffer::Iterator bufferSciTagIt = bufferSciTag.Begin();
+        // sciTag.DeserializeForE2(bufferSciTagIt);
+
         ns3::NrSlMacPduTag sciTag = ns3::NrSlMacPduTag();
-        ns3::Buffer::Iterator bufferSciTagIt = bufferSciTag.Begin();
-        sciTag.DeserializeForE2(bufferSciTagIt);
+        ns3::NrSlMacPduTagProto sciTagProto = ns3::NrSlMacPduTagProto();        
+        sciTagProto.ParseFromArray(bufferTag, s.length());
+        sciTag.DeserializeFromProtoBuff(sciTagProto);
 
         data = new v2x_sci_tag_buffer_t(sciTag);
         free(bufferTag);

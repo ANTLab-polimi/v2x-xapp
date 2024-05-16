@@ -72,5 +72,6 @@
         "nativereal.h": "c",
         "v2xallbufferpacketdelays.h": "c",
         "v2xscimessageitem-list.h": "c"
-    }
+    },
+    "cmake.sourceDirectory": "/home/fgjeci/workspace/v2x-scheduling/v2x-xapp-ric1/setup/xapp-sm-connector"
 }

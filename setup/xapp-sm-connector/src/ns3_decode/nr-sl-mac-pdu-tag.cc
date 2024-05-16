@@ -204,5 +204,41 @@ NrSlMacPduTag::operator == (const NrSlMacPduTag &b) const
   return false;
 }
 
+NrSlMacPduTagProto
+NrSlMacPduTag::GenerateProtoBuff (void) const
+{
+  NS_LOG_FUNCTION(this);
+  NrSlMacPduTagProto tagProto = NrSlMacPduTagProto();
+  tagProto.set_m_rnti(m_rnti);
+  
+  NrSlMacPduTagProto_SfnSfProto sfnProto = NrSlMacPduTagProto_SfnSfProto();
+  sfnProto.set_m_framenum(m_sfnSf.m_frameNum);
+  sfnProto.set_m_subframenum(m_sfnSf.m_subframeNum);
+  sfnProto.set_m_slotnum(m_sfnSf.m_slotNum);
+  sfnProto.set_m_numerology(m_sfnSf.m_numerology);
+
+  tagProto.set_allocated_m_sfnsf(&sfnProto);
+  tagProto.set_m_symstart(m_symStart);
+  tagProto.set_m_numsym(m_numSym);
+  tagProto.set_m_tbsize(m_tbSize);
+  tagProto.set_m_dstl2id(m_dstL2Id);
+}
+
+void
+NrSlMacPduTag::DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf) const
+{
+  NS_LOG_FUNCTION(this);
+  m_rnti = (uint16_t)protoBuf.m_rnti();
+  NrSlMacPduTagProto_SfnSfProto sfnProto = protoBuf.m_sfnsf();
+  m_sfnSf.m_frameNum = (uint16_t)sfnProto.m_framenum();
+  m_sfnSf.m_subframeNum = (uint8_t)sfnProto.m_subframenum();
+  m_sfnSf.m_slotNum = (uint16_t)sfnProto.m_slotnum();
+  m_sfnSf.m_numerology = (int16_t)sfnProto.m_numerology();
+  m_symStart = (uint8_t)protoBuf.m_symstart();
+  m_numSym = (uint8_t)protoBuf.m_numsym();
+  m_tbSize = (uint32_t)protoBuf.m_tbsize();
+  m_dstL2Id = (uint32_t)protoBuf.m_dstl2id();
+}
+
 } // namespace ns3
 

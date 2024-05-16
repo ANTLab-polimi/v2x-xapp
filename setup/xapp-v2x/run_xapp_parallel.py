@@ -176,7 +176,7 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
         logger.info('Sending back the data with size .. ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
-        sleep(0.1)
+        sleep(0.2)
     return send_data
 
 def write_assignment_data_to_file(plmn:str, allImsi: np.ndarray, real_assignments: np.ndarray, 

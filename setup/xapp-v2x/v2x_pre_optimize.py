@@ -83,14 +83,14 @@ class UserPreoptimization:
 
             # this is a blind retransmission
             # for each active flow we add a blind retransmission
-                self.retx_buffer_size.append(
-                    (
-                        self.ue_id, _con.ue_id,
-                        np.iinfo(np.uint8).max,
-                        _delay_intervals.bufferSize,
-                        _delay_intervals.numberOfPackets
-                    )
-                )
+                # self.retx_buffer_size.append(
+                #     (
+                #         self.ue_id, _con.ue_id,
+                #         np.iinfo(np.uint8).max,
+                #         _delay_intervals.bufferSize,
+                #         _delay_intervals.numberOfPackets
+                #     )
+                # )
 
     
 class V2XPreScheduling:

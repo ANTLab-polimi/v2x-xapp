@@ -343,6 +343,50 @@ NrSlSciF1aHeader::GetSerializedSizeForE2 (void) const
   totalSize = 1 + 1 + 1 + 2 + 2 + 1 + 1 + 1+  1 + 1+ 1 +1;
   return totalSize;
 }
+
+NrSlSciF1aHeaderProto
+NrSlSciF1aHeader::GenerateProtoBuff (void) const
+{
+  NS_LOG_FUNCTION(this);
+  NrSlSciF1aHeaderProto protoBuff = NrSlSciF1aHeaderProto();
+  protoBuff.set_m_totalsubchannels(m_totalSubChannels);
+  protoBuff.set_m_priority(m_priority);
+  protoBuff.set_m_indexstartsubchannel(m_indexStartSubChannel);
+  protoBuff.set_m_lengthsubchannel(m_lengthSubChannel);
+  protoBuff.set_m_mcs(m_mcs);
+  protoBuff.set_m_slresourcereserveperiod(m_slResourceReservePeriod);
+  protoBuff.set_m_slmaxnumperreserve(m_slMaxNumPerReserve);
+  protoBuff.set_m_slscistage2format(m_slSciStage2Format);
+  protoBuff.set_m_indexstartsbchretx1(m_indexStartSbChReTx1);
+  protoBuff.set_m_indexstartsbchretx2(m_indexStartSbChReTx2);
+  protoBuff.set_m_gapretx1(m_gapReTx1);
+  protoBuff.set_m_gapretx2(m_gapReTx2);
+  for (uint32_t i = 0; i < m_allowedSciStage2Format.size(); ++i){
+    NrSlSciF1aHeaderProto_SciStage2Format_tProto sciStage2Format = m_allowedSciStage2Format[i];
+    protoBuff.add_sciformat(sciStage2Format);
+  }
+  return protoBuff;
+}
+
+void
+NrSlSciF1aHeader::DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuff) const
+{
+  m_totalSubChannels = (uint16_t)protoBuff.m_totalsubchannels();
+  m_priority = (uint8_t)protoBuff.m_priority();
+  m_indexStartSubChannel = (uint8_t)protoBuff.m_indexstartsubchannel();
+  m_lengthSubChannel = (uint8_t)protoBuff.m_lengthsubchannel();
+  m_mcs = (uint8_t)protoBuff.m_mcs();
+  m_slResourceReservePeriod = (uint16_t)protoBuff.m_slresourcereserveperiod();
+  m_slMaxNumPerReserve = (uint8_t)protoBuff.m_slmaxnumperreserve();
+  m_slSciStage2Format = (uint8_t)protoBuff.m_slscistage2format();
+  m_indexStartSbChReTx1 = (uint8_t)protoBuff.m_indexstartsbchretx1();
+  m_indexStartSbChReTx2 = (uint8_t)protoBuff.m_indexstartsbchretx2();
+  m_gapReTx1 = (uint8_t)protoBuff.m_gapretx1();
+  m_gapReTx2 = (uint8_t)protoBuff.m_gapretx2();
+  for (uint32_t i = 0; i < protoBuff.sciformat_size(); ++i){
+    m_allowedSciStage2Format.push_back((SciStage2Format_t)protoBuff.sciformat(i));
+  }
+}
 // end modification
 
 uint32_t

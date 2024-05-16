@@ -979,14 +979,14 @@ class XmlToDictDataTransform:
         
         # can receive multi-user reports in a single msg
         self.all_users_reports+=_reports_per_user_list
-        pickle_out = open('/home/traces/ue_reports_' + self.plmn_id + '.pickle', 'ab+')
-        # print(f"Writing to pickle we plmn {self.plmn_id}")
-        for _reports_per_user in _reports_per_user_list:
-            # print(_reports_per_user)
-            _ue_reports_dict = _reports_per_user.to_dict()
-            _ue_reports_dict[_JSON_PLMN] = self.plmn_id
-            pickle.dump(_ue_reports_dict, pickle_out)
-        pickle_out.close()
+        # pickle_out = open('/home/traces/ue_reports_' + self.plmn_id + '.pickle', 'ab+')
+        # # print(f"Writing to pickle we plmn {self.plmn_id}")
+        # for _reports_per_user in _reports_per_user_list:
+        #     # print(_reports_per_user)
+        #     _ue_reports_dict = _reports_per_user.to_dict()
+        #     _ue_reports_dict[_JSON_PLMN] = self.plmn_id
+        #     pickle.dump(_ue_reports_dict, pickle_out)
+        # pickle_out.close()
 
     def _parse_message_ues_single_report(self, input_dict: Mapping, header_collection_time: int) -> List:
         _message_dict = reduce(operator.getitem, _MESSAGE_PART, input_dict)

@@ -25,6 +25,8 @@
 #include <limits>
 #include "ns_assert.h"
 
+#include "ns3/sl-sci-msg.pb.h"
+
 namespace ns3 {
 
 /**
@@ -278,6 +280,10 @@ public:
   void SerializeForE2 (Buffer::Iterator start) const;
   uint32_t DeserializeForE2 (Buffer::Iterator start);
   uint32_t GetSerializedSizeForE2 (void) const;
+
+  NrSlSciF1aHeaderProto GenerateProtoBuff(void) const;
+
+  void DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf) const;
   // end modification
 private:
   //Mandatory fields including the SCI fields
