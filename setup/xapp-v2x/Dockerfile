@@ -44,7 +44,8 @@ ENV RMR_RTG_SVC="9999" \
 COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
 COPY ${XAPP_DIR} /home/${XAPP_DIR}
 COPY ${CONNECTOR_DIR}/src/xapp.cc ${STAGE_DIR}/src 
-COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/ns3_decode
+COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/
+# COPY ${CONNECTOR_DIR}/src/ns3_decode/sl-sci-msg.proto ${STAGE_DIR}/src/ns3_decode
 # COPY ${IPSO_DIR} /home/${IPSO_DIR}
 
 WORKDIR ${STAGE_DIR}
