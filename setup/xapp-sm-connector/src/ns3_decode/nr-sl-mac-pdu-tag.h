@@ -27,7 +27,7 @@
 #include "tag.h"
 #include "ns_assert.h"
 
-#include <ns3/sl-sci-msg.pb.h>
+#include <sl-sci-msg.pb.h>
 
 namespace ns3 {
 
@@ -68,7 +68,7 @@ public:
 
   NrSlMacPduTagProto GenerateProtoBuff (void) const;
 
-  void DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf) const;
+  void DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf);
   // end modification
 
   /**

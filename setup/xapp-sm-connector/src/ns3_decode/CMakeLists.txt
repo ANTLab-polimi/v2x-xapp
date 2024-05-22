@@ -22,13 +22,22 @@
 # file(GLOB SOURCES "*.cc")
 # file(GLOB HEADERS "*.h")
 
+include(FindProtobuf)
+find_package(Protobuf REQUIRED)
+# include_directories(${PROTOBUF_INCLUDE_DIR})
+
 
 add_library( ns3_decode_objects OBJECT ${SOURCES})
 target_compile_definitions(ns3_decode_objects PUBLIC ASN_DISABLE_OER_SUPPORT)
 
+target_link_libraries(ns3_decode_objects
+    ${PROTOBUF_LIBRARY}
+)
+
 target_include_directories (ns3_decode_objects PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+  PUBLIC ${PROTOBUF_INCLUDE_DIR}
   PRIVATE src)
 
 # header files should go into .../include/xfcpp/

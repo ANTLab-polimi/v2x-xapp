@@ -27,23 +27,25 @@ RNIB_LIBS:= -pthread /usr/local/include/rnib/rnibreader.a
 BASEFLAGS=  -Wall -std=c++14 $(CLOGFLAGS) 
 C_BASEFLAGS= -Wall $(CLOGFLAGS) -DASN_DISABLE_OER_SUPPORT
 
-XAPPFLAGS= -I./
-HWFLAGS= -I./
-UTILFLAGS= -I$(UTILSRC)
-MSGFLAGS= -I$(MSGSRC) 
+XAPPFLAGS=-I./
+HWFLAGS=-I./
+UTILFLAGS=-I$(UTILSRC)
+MSGFLAGS=-I$(MSGSRC) 
 
 # modified
-NS3DECODEFLAGS=-I$(NS3DECODESRC)
-TINYXMLFLAGS = -I$(TINYXMLSRC)
-CONTROLMESSAGEFLAGS = -I$(RICCONTROLSRC)
+NS3DECODEFLAGS=-I$(NS3DECODESRC) -I/usr/include
+# NS3DECODELIBS=-L/usr/lib/x86_64-linux-gnu -lprotobuf
+NS3DECODELIBS:= `pkg-config --cflags --libs protobuf`
+TINYXMLFLAGS=-I$(TINYXMLSRC)
+CONTROLMESSAGEFLAGS=-I$(RICCONTROLSRC)
 # end modification
 ASNFLAGS=-I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
-E2APFLAGS = -I$(E2APSRC)
-E2SMFLAGS = -I$(E2SMSRC)
+E2APFLAGS=-I$(E2APSRC)
+E2SMFLAGS=-I$(E2SMSRC)
 
 ########libs
 
-LIBS= -lsdl -lrmr_si  -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS)
+LIBS= -lsdl -lrmr_si  -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS) $(NS3DECODELIBS)
 COV_FLAGS= -fprofile-arcs -ftest-coverage
 
 #######
@@ -91,7 +93,7 @@ $(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) 
 
 # modified
 $(TINYXML_OBJ):export CPPFLAGS= $(BASEFLAGS) $(TINYXMLFLAGS)
-$(NS3DECODE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(NS3DECODEFLAGS)
+$(NS3DECODE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(NS3DECODEFLAGS) $(NS3DECODELIBS)
 $(CONTROL_MESSAGE_OBJ):export CPPFLAGS= $(C_BASEFLAGS) $(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(CONTROLMESSAGEFLAGS)
 # end modification
 
@@ -101,7 +103,7 @@ OBJ=  $(HWXAPP_OBJ) $(UTIL_OBJ) $(MSG_OBJ) $(ASN1C_MODULES) $(TINYXML_OBJ) $(E2A
 print-%  : ; @echo $* = $($*)
 
 hw_xapp_main: $(OBJ)
-	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) agent_connector.cc
+	$(CXX) $(NS3DECODELIBS) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) agent_connector.cc
 
 install: hw_xapp_main
 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main

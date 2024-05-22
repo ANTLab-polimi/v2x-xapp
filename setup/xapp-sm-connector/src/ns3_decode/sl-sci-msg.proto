@@ -1,0 +1,70 @@
+syntax = "proto3";
+// package protobuf_net;
+package ns3;
+// option csharp_namespace = "ns";
+
+message SfnSfProto{
+    uint32 m_frameNum = 1;
+    uint32 m_subframeNum = 2;
+    uint32 m_slotNum = 3;
+    int32 m_numerology = 4;
+}
+
+message NrSlMacPduTagProto {
+
+    uint32 m_rnti = 1;
+    uint32 m_symStart = 2;
+    uint32 m_numSym = 3;
+    uint32 m_tbSize = 4;
+    uint32 m_dstL2Id = 5;
+    SfnSfProto m_sfnSf = 6;
+    
+}
+
+message NrSlSciF1aHeaderProto {
+
+    enum SciStage2Format_tProto {
+        SciFormat2A = 0;
+        SciFormat2B = 1;
+    };
+
+    uint32 m_totalSubChannels = 1;
+    uint32 m_priority = 2;
+    uint32 m_indexStartSubChannel = 3;
+    uint32 m_lengthSubChannel = 4;
+    uint32 m_mcs = 5;
+    uint32 m_slResourceReservePeriod = 6;
+    uint32 m_slMaxNumPerReserve = 7;
+    uint32 m_slSciStage2Format = 8;
+    uint32 m_indexStartSbChReTx1 = 9;
+    uint32 m_indexStartSbChReTx2 = 10;
+    uint32 m_gapReTx1 = 11;
+    uint32 m_gapReTx2 = 12;
+    repeated SciStage2Format_tProto sciFormat = 13 [packed=true];
+}
+
+message SlRlcPduInfoProto{
+    uint32 lcid = 1;
+    uint32 size = 2;
+}
+
+message NrSlSlotAllocProto {
+    SfnSfProto sfn = 16;
+    uint32 dstL2Id = 15;
+    uint32 ndi = 14;
+    uint32 rv = 13;
+    uint32 priority = 12;
+    repeated SlRlcPduInfoProto slRlcPduInfo = 17;
+    uint32 mcs = 11;
+    uint32 numSlPscchRbs = 10;
+    uint32 slPscchSymStart = 9;
+    uint32 slPscchSymLength = 8;
+    uint32 slPsschSymStart = 7;
+    uint32 slPsschSymLength = 6;
+    uint32 slPsschSubChStart = 5;
+    uint32 slPsschSubChLength = 1;
+    uint32 maxNumPerReserve = 2;
+    bool txSci1A = 3;
+    uint32 slotNumInd = 4;
+
+} 

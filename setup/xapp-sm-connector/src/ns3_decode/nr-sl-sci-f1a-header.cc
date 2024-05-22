@@ -362,14 +362,13 @@ NrSlSciF1aHeader::GenerateProtoBuff (void) const
   protoBuff.set_m_gapretx1(m_gapReTx1);
   protoBuff.set_m_gapretx2(m_gapReTx2);
   for (uint32_t i = 0; i < m_allowedSciStage2Format.size(); ++i){
-    NrSlSciF1aHeaderProto_SciStage2Format_tProto sciStage2Format = m_allowedSciStage2Format[i];
-    protoBuff.add_sciformat(sciStage2Format);
+    protoBuff.add_sciformat(NrSlSciF1aHeaderProto_SciStage2Format_tProto(m_allowedSciStage2Format[i]));
   }
   return protoBuff;
 }
 
 void
-NrSlSciF1aHeader::DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuff) const
+NrSlSciF1aHeader::DeserializeFromProtoBuff (NrSlSciF1aHeaderProto protoBuff)
 {
   m_totalSubChannels = (uint16_t)protoBuff.m_totalsubchannels();
   m_priority = (uint8_t)protoBuff.m_priority();

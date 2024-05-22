@@ -25,7 +25,7 @@
 #include <limits>
 #include "ns_assert.h"
 
-#include "ns3/sl-sci-msg.pb.h"
+#include "sl-sci-msg.pb.h"
 
 namespace ns3 {
 
@@ -283,7 +283,7 @@ public:
 
   NrSlSciF1aHeaderProto GenerateProtoBuff(void) const;
 
-  void DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf) const;
+  void DeserializeFromProtoBuff (NrSlSciF1aHeaderProto protoBuf);
   // end modification
 private:
   //Mandatory fields including the SCI fields

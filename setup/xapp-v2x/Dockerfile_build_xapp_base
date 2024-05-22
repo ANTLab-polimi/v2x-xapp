@@ -117,7 +117,7 @@ RUN cd ${STAGE_DIR} \
   && rm -rf rapidjson
 
 
-RUN apt-get update && apt-get install protobuf-compiler
+RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
 
 
 # RUN pip install tensorflow

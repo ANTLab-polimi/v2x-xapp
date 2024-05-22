@@ -211,11 +211,11 @@ NrSlMacPduTag::GenerateProtoBuff (void) const
   NrSlMacPduTagProto tagProto = NrSlMacPduTagProto();
   tagProto.set_m_rnti(m_rnti);
   
-  NrSlMacPduTagProto_SfnSfProto sfnProto = NrSlMacPduTagProto_SfnSfProto();
-  sfnProto.set_m_framenum(m_sfnSf.m_frameNum);
-  sfnProto.set_m_subframenum(m_sfnSf.m_subframeNum);
-  sfnProto.set_m_slotnum(m_sfnSf.m_slotNum);
-  sfnProto.set_m_numerology(m_sfnSf.m_numerology);
+  SfnSfProto sfnProto = SfnSfProto();
+  sfnProto.set_m_framenum(m_sfnSf.GetFrame());
+  sfnProto.set_m_subframenum(m_sfnSf.GetSubframe());
+  sfnProto.set_m_slotnum(m_sfnSf.GetSlot());
+  sfnProto.set_m_numerology(m_sfnSf.GetNumerology());
 
   tagProto.set_allocated_m_sfnsf(&sfnProto);
   tagProto.set_m_symstart(m_symStart);
@@ -225,15 +225,14 @@ NrSlMacPduTag::GenerateProtoBuff (void) const
 }
 
 void
-NrSlMacPduTag::DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf) const
+NrSlMacPduTag::DeserializeFromProtoBuff (NrSlMacPduTagProto protoBuf)
 {
-  NS_LOG_FUNCTION(this);
   m_rnti = (uint16_t)protoBuf.m_rnti();
-  NrSlMacPduTagProto_SfnSfProto sfnProto = protoBuf.m_sfnsf();
-  m_sfnSf.m_frameNum = (uint16_t)sfnProto.m_framenum();
-  m_sfnSf.m_subframeNum = (uint8_t)sfnProto.m_subframenum();
-  m_sfnSf.m_slotNum = (uint16_t)sfnProto.m_slotnum();
-  m_sfnSf.m_numerology = (int16_t)sfnProto.m_numerology();
+  SfnSfProto sfnProto = protoBuf.m_sfnsf();
+  m_sfnSf = SfnSf((uint16_t)sfnProto.m_framenum(),
+        (uint8_t)sfnProto.m_subframenum(),
+        (uint16_t)sfnProto.m_slotnum(),
+        (int16_t)sfnProto.m_numerology());
   m_symStart = (uint8_t)protoBuf.m_symstart();
   m_numSym = (uint8_t)protoBuf.m_numsym();
   m_tbSize = (uint32_t)protoBuf.m_tbsize();
