@@ -4,7 +4,7 @@ import logging
 # import asn1tools
 # import binascii
 # from ipso import scenario_creation
-import pandas as pd
+# import pandas as pd
 import os
 from ctrl_msg_encoder_decoder import RicControlMessageEncoder
 
@@ -154,5 +154,5 @@ if __name__ == '__main__':
                 if _val_bytes in _data_buffer:
                     _plmn = _l_plmn[_ind_bytes]
             _l_plmn_size.append([_plmn, _bytes_consumed])
-    df_msg_size = pd.DataFrame(_l_plmn_size, columns=['plmn', 'size'])
-    df_msg_size.to_csv("/home/traces/plmn_msg_size.txt", index=False)
+    # df_msg_size = pd.DataFrame(_l_plmn_size, columns=['plmn', 'size'])
+    # df_msg_size.to_csv("/home/traces/plmn_msg_size.txt", index=False)

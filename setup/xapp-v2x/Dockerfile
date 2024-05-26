@@ -29,6 +29,8 @@ ARG MDC_VER=0.0.4-1
 ARG RMR_VER=4.0.5
 ARG RNIB_VER=1.0.0
 
+RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
+
 ENV RMR_RTG_SVC="9999" \
   RMR_SEED_RT="/home/${CONNECTOR_DIR}/init/routes.txt" \
   LD_LIBRARY_PATH="/usr/local/lib:/usr/local/libexec" \
@@ -40,19 +42,24 @@ ENV RMR_RTG_SVC="9999" \
   TZ=Europe/Rome \
   DEBIAN_FRONTEND=noninteractive
 
-# COPY ${CONNECTOR_DIR} ${STAGE_DIR}
-COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
+COPY ${CONNECTOR_DIR} ${STAGE_DIR}
+# COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
 COPY ${XAPP_DIR} /home/${XAPP_DIR}
 COPY ${CONNECTOR_DIR}/src/xapp.cc ${STAGE_DIR}/src 
+<<<<<<< HEAD
 COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/
 # COPY ${CONNECTOR_DIR}/src/ns3_decode/sl-sci-msg.proto ${STAGE_DIR}/src/ns3_decode
+=======
+COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/ns3_decode
+COPY ${XAPP_DIR}/*.py /home/${XAPP_DIR}
+>>>>>>> aaa5ac6 (xapp parallel)
 # COPY ${IPSO_DIR} /home/${IPSO_DIR}
 
 WORKDIR ${STAGE_DIR}
 
 RUN cd src/ns3_decode \
     && protoc --cpp_out=. sl-sci-msg.proto \
-    && cd ..
+    && cd ../..
 
 
 ##-----------------------------------
@@ -75,6 +82,8 @@ RUN export CPATH=$CPATH:/usr/local/include \
   && apt-get autoremove -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+
 
 
 
