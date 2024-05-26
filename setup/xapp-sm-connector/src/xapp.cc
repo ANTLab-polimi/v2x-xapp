@@ -402,7 +402,7 @@ void Xapp::send_ric_control_request(char* payload, std::string gnb_id, int recv_
 	unsigned char meid[RMR_MAX_MEID];
 	std::string xapp_id = config_ref->operator [](XappSettings::SettingName::XAPP_ID);
 
-	mdclog_write(MDCLOG_INFO, "Preparing to send control in file= %s, line=%d", __FILE__, __LINE__);
+	// mdclog_write(MDCLOG_INFO, "Preparing to send control in file= %s, line=%d", __FILE__, __LINE__);
 
     auto gnblist = get_rnib_gnblist();
     int sz = gnblist.size();

@@ -578,22 +578,33 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
 
                 );
                 // user buffer for the serialization
-                uint32_t nrSlotAllocBufferSize = nrSlSlotAlloc.GetSerializedSizeForE2();
-                ns3::Buffer bufferNrSlotAlloc = ns3::Buffer();
-                bufferNrSlotAlloc.AddAtStart(nrSlotAllocBufferSize);
-                nrSlSlotAlloc.SerializeForE2(bufferNrSlotAlloc.Begin());
-                uint32_t extraSizeNrSlotAlloc = 30;
-                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
-                bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
-                extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
+                // uint32_t nrSlotAllocBufferSize = nrSlSlotAlloc.GetSerializedSizeForE2();
+                // ns3::Buffer bufferNrSlotAlloc = ns3::Buffer();
+                // bufferNrSlotAlloc.AddAtStart(nrSlotAllocBufferSize);
+                // nrSlSlotAlloc.SerializeForE2(bufferNrSlotAlloc.Begin());
+                // uint32_t extraSizeNrSlotAlloc = 30;
+                // uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+                // bufferNrSlotAlloc.Serialize(bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc);
+                // extraSizeNrSlotAlloc = bufferNrSlotAlloc.GetSerializedSize() - bufferNrSlotAlloc.GetSize();
+
                 // Buffer_String_t * allocBufferString = (Buffer_String_t *) calloc (1, sizeof (Buffer_String_t));
                 // allocBufferString->buf = (uint8_t *) calloc (1, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
                 // allocBufferString->size = nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4;
                 // memcpy (allocBufferString->buf, bufferNrSlotAllocBuffer, nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
                 // schedulingItem->nrSlotAllocBuffer = *allocBufferString;
-                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
-                schedulingItem->nrSlotAllocBuffer.size = (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
-                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
+
+                // schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
+                // schedulingItem->nrSlotAllocBuffer.size = (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4);
+                // memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlotAllocBufferSize+extraSizeNrSlotAlloc+4));
+                // protobuf serialization
+
+                ns3::NrSlSlotAllocProto nrSlSlotProto = nrSlSlotAlloc.GenerateProtoBuff();
+                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlSlotProto.ByteSize());
+                nrSlSlotProto.SerializeToArray(bufferNrSlotAllocBuffer, nrSlSlotProto.ByteSize());
+                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlSlotProto.ByteSize()));
+                schedulingItem->nrSlotAllocBuffer.size = (nrSlSlotProto.ByteSize());
+                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlSlotProto.ByteSize()));
+
                 ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
             }
             // add this user the the list of all users

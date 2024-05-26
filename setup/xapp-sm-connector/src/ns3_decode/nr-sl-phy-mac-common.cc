@@ -140,5 +140,78 @@ NrSlSlotAlloc::NrSlSlotAlloc (uint16_t m_frameNum, uint8_t m_subframeNum, uint16
       slotNumInd (slotNumInd){
 
       }
+
+NrSlSlotAllocProto
+NrSlSlotAlloc::GenerateProtoBuff (void) const
+{
+  NrSlSlotAllocProto allocProto = NrSlSlotAllocProto();
+  
+  SfnSfProto sfnProto = SfnSfProto();
+  sfnProto.set_m_framenum(sfn.GetFrame());
+  sfnProto.set_m_subframenum(sfn.GetSubframe());
+  sfnProto.set_m_slotnum(sfn.GetSlot());
+  sfnProto.set_m_numerology(sfn.GetNumerology());
+  allocProto.set_allocated_sfn(&sfnProto);
+
+  allocProto.set_dstl2id(dstL2Id);
+  allocProto.set_ndi(ndi);
+  allocProto.set_rv(rv);
+  allocProto.set_priority(priority);
+
+  for (uint32_t i = 0; i<slRlcPduInfo.size(); ++i){
+    SlRlcPduInfoProto* slRlcProto = allocProto.add_slrlcpduinfo();
+    slRlcProto->set_lcid(slRlcPduInfo[i].lcid);
+    slRlcProto->set_size(slRlcPduInfo[i].size);
+  }
+
+  allocProto.set_mcs(mcs);
+  allocProto.set_numslpscchrbs(numSlPscchRbs);
+  allocProto.set_slpscchsymstart(slPscchSymStart);
+  allocProto.set_slpscchsymlength(slPscchSymLength);
+  allocProto.set_slpsschsymstart(slPsschSymStart);
+  allocProto.set_slpsschsymlength(slPsschSymLength);
+  allocProto.set_slpsschsubchstart(slPsschSubChStart);
+  allocProto.set_slpsschsubchlength(slPsschSubChLength);
+  allocProto.set_maxnumperreserve(maxNumPerReserve);
+  allocProto.set_txsci1a(txSci1A);
+  allocProto.set_slotnumind(slotNumInd);
+  return allocProto;
+}
+
+void
+NrSlSlotAlloc::DeserializeFromProtoBuff (NrSlSlotAllocProto protoBuf)
+{   
+  SfnSfProto sfnProto = protoBuf.sfn();
+  // sfn.m_frameNum = (uint16_t)sfnProto.m_framenum();
+  // sfn.m_subframeNum = (uint8_t)sfnProto.m_subframenum();
+  // sfn.m_slotNum = (uint16_t)sfnProto.m_slotnum();
+  // sfn.m_numerology = (int16_t)sfnProto.m_numerology();
+  sfn = SfnSf((uint16_t)sfnProto.m_framenum(),
+        (uint8_t)sfnProto.m_subframenum(),
+        (uint16_t)sfnProto.m_slotnum(),
+        (int16_t)sfnProto.m_numerology());
+
+  dstL2Id = protoBuf.dstl2id();
+  ndi = protoBuf.ndi();
+  rv = protoBuf.rv();
+  priority = protoBuf.priority();
+
+  for (int i = 0; i < protoBuf.slrlcpduinfo_size(); ++i){
+    slRlcPduInfo.push_back(SlRlcPduInfo(protoBuf.slrlcpduinfo(i)));
+  }
+  
+  mcs = protoBuf.mcs();
+  numSlPscchRbs = protoBuf.numslpscchrbs();
+  slPscchSymStart = protoBuf.slpscchsymstart();
+  slPscchSymLength = protoBuf.slpscchsymlength();
+  slPsschSymStart = protoBuf.slpsschsymstart();
+  slPsschSymLength = protoBuf.slpsschsymlength();
+  slPsschSubChStart = protoBuf.slpsschsubchstart();
+  slPsschSubChLength = protoBuf.slpsschsubchlength();
+  maxNumPerReserve = protoBuf.maxnumperreserve();
+  txSci1A = protoBuf.txsci1a();
+  slotNumInd = protoBuf.slotnumind();
+}
+
 // end modification
 }

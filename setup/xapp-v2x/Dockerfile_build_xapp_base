@@ -39,6 +39,8 @@ RUN pip install xmltodict \
   # && pip install gymnasium \
   # && pip install tensorflow-probability
 
+  RUN apt-get update && apt-get install -y protobuf-compiler
+
 
   # && pip3 install gymnasium \
   # && pip3 install networkx
@@ -116,8 +118,7 @@ RUN cd ${STAGE_DIR} \
   && cd ${STAGE_DIR} \
   && rm -rf rapidjson
 
-
-RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
+  RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
 
 
 # RUN pip install tensorflow
