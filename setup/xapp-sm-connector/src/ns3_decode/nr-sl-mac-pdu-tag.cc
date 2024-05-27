@@ -19,6 +19,7 @@
 
 
 #include "nr-sl-mac-pdu-tag.h"
+#include "sl-sfnsf.pb.h"
 #include "tag.h"
 
 namespace ns3 {
@@ -222,6 +223,7 @@ NrSlMacPduTag::GenerateProtoBuff (void) const
   tagProto.set_m_numsym(m_numSym);
   tagProto.set_m_tbsize(m_tbSize);
   tagProto.set_m_dstl2id(m_dstL2Id);
+  return tagProto;
 }
 
 void

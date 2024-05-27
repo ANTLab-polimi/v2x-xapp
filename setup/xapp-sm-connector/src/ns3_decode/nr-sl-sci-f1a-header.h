@@ -25,7 +25,7 @@
 #include <limits>
 #include "ns_assert.h"
 
-#include "sl-sci-msg.pb.h"
+#include "sl-sci-f1a-header.pb.h"
 
 namespace ns3 {
 

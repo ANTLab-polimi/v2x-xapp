@@ -1,1 +1,3 @@
 protoc --cpp_out=. sl-sci-msg.proto
+
+protoc --cpp_out=. sl-mac-pdu-tag.proto

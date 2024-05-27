@@ -29,7 +29,7 @@ ARG MDC_VER=0.0.4-1
 ARG RMR_VER=4.0.5
 ARG RNIB_VER=1.0.0
 
-RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
+# RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
 
 ENV RMR_RTG_SVC="9999" \
   RMR_SEED_RT="/home/${CONNECTOR_DIR}/init/routes.txt" \
@@ -42,25 +42,40 @@ ENV RMR_RTG_SVC="9999" \
   TZ=Europe/Rome \
   DEBIAN_FRONTEND=noninteractive
 
-COPY ${CONNECTOR_DIR} ${STAGE_DIR}
+RUN  apt update && apt install -y g++ unzip zip && pip install protobuf==3.20.*
+
+
+# WORKDIR /home
+
+# RUN wget https://github.com/protocolbuffers/protobuf/archive/refs/tags/v27.0.tar.gz \
+#   && wget https://github.com/bazelbuild/bazel/releases/download/7.1.2/bazel-7.1.2-installer-linux-x86_64.sh \
+#   && chmod +x bazel-7.1.2-installer-linux-x86_64.sh \
+#   && ./bazel-7.1.2-installer-linux-x86_64.sh \
+#   && rm bazel-7.1.2-installer-linux-x86_64.sh \
+#   && tar -xvzf v27.0.tar.gz \
+#   && rm v27.0.tar.gz \
+#   && cd protobuf-27.0 \
+#   && bazel build :protoc :protobuf
+
+
+
+# COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}
+# COPY ${CONNECTOR_DIR} /home
 # COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
-COPY ${XAPP_DIR} /home/${XAPP_DIR}
-COPY ${CONNECTOR_DIR}/src/xapp.cc ${STAGE_DIR}/src 
-<<<<<<< HEAD
-COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/
-# COPY ${CONNECTOR_DIR}/src/ns3_decode/sl-sci-msg.proto ${STAGE_DIR}/src/ns3_decode
-=======
-COPY ${CONNECTOR_DIR}/src/ns3_decode/ ${STAGE_DIR}/src/ns3_decode
-COPY ${XAPP_DIR}/*.py /home/${XAPP_DIR}
->>>>>>> aaa5ac6 (xapp parallel)
+# COPY ${XAPP_DIR}/ /home/${XAPP_DIR}
+# COPY ${XAPP_DIR} /home
+# COPY ${CONNECTOR_DIR}/src/xapp.cc ${STAGE_DIR}/src 
+# COPY ${CONNECTOR_DIR}/src/ns3_decode/* ${STAGE_DIR}/src
+# COPY ${XAPP_DIR}/*.py /home/${XAPP_DIR}
 # COPY ${IPSO_DIR} /home/${IPSO_DIR}
 
+
+
+# RUN cd src/ns3_decode \
+#     && protoc --cpp_out=. sl-sci-msg.proto \
+#     && cd ../..
+
 WORKDIR ${STAGE_DIR}
-
-RUN cd src/ns3_decode \
-    && protoc --cpp_out=. sl-sci-msg.proto \
-    && cd ../..
-
 
 ##-----------------------------------
 # Now install the program
@@ -82,6 +97,8 @@ RUN export CPATH=$CPATH:/usr/local/include \
   && apt-get autoremove -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+RUN ./ric_message_sl.sh
 
 
 

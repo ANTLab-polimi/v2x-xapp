@@ -9,6 +9,10 @@ import numpy as np
 
 from v2x_ric_message_format import SourceUserScheduling, UserScheduling, SingleScheduling, SlRlcPduInfo
 
+import sl_sci_f1a_header_pb2 as sci_header
+import sl_mac_pdu_tag_pb2 as sci_tag
+from google.protobuf.message import Message
+
 # from run_xapp_parallel import _JSON_SOURCE_SCHEDULING
 # import transform_xml_to_dict_v2x as transform
 
@@ -331,7 +335,29 @@ class RicControlMessageEncoder:
         return (_total_subchannels, _priority, _indexStartSubChannel, _lengthSubChannel, _mcs, 
             _slResourceReservePeriod, _slMaxNumPerReserve, _slSciStage2Format, 
             _indexStartSbChReTx1, _indexStartSbChReTx2, _gapReTx1, _gapReTx2)
-        
+    
+    def decode_sci_header_proto(self, input_bytes):
+        _msg: Message = Message()
+        _msg.ParseFromString(input_bytes)
+        _sci_header_proto:sci_header.NrSlSciF1aHeaderProto = sci_header.NrSlSciF1aHeaderProto(_msg)
+
+        _total_subchannels = _sci_header_proto.m_totalSubChannels
+        _priority = _sci_header_proto.m_priority
+        _indexStartSubChannel = _sci_header_proto.m_indexStartSubChannel
+        _lengthSubChannel = _sci_header_proto.m_lengthSubChannel
+        _mcs = _sci_header_proto.m_mcs
+        _slResourceReservePeriod = _sci_header_proto.m_slResourceReservePeriod
+        _slMaxNumPerReserve = _sci_header_proto.m_slMaxNumPerReserve
+        _slSciStage2Format = _sci_header_proto.m_slSciStage2Format
+        _indexStartSbChReTx1 = _sci_header_proto.m_indexStartSbChReTx1
+        _indexStartSbChReTx2 = _sci_header_proto.m_indexStartSbChReTx2
+        _gapReTx1 = _sci_header_proto.m_gapReTx1
+        _gapReTx2 = _sci_header_proto.m_gapReTx2
+        return (_total_subchannels, _priority, _indexStartSubChannel, _lengthSubChannel, _mcs, 
+            _slResourceReservePeriod, _slMaxNumPerReserve, _slSciStage2Format, 
+            _indexStartSbChReTx1, _indexStartSbChReTx2, _gapReTx1, _gapReTx2)
+
+    
     def decode_sci_tag(self, input_bytes):
         _asn1_decode_e2ap = self._wrap_asn1_function(
                                 'decode_v2x_sci_tag', 
@@ -353,8 +379,20 @@ class RicControlMessageEncoder:
         dstL2Id = msg.contents.m_dstL2Id
         return (frameNum, subframeNum, slotNum, numerology, rnti, symStart, numSym, tbSize, dstL2Id)
         
-
-# _test_data_3 =  b"\x00\x05@\x83\xd3\x00\x00\x08\x00\x1d\x00\x05\x00\x00\x18\x00\x00\x00\x05\x00\x02\x00\xc8\x00\x0f\x00\x01\x01\x00\x1b\x00\x02\x00\x01\x00\x1c\x00\x01\x00\x00\x19\x00\x13\x12\x00\x00\x00\x01\x87\x94\xa6\xdbD\x00111P2\x00\x00\x00\x00\x1a\x00\x83\x8c\x83\x8a0\x80\x00\x00`11132\x00\x00\x00\x00\x8b\x00\x8b\x02111\x00\x00`\x01\x80\x00\x00\x041112\x07\x00\xc0TB.TotNbrDl.1\x00\x02\x02\x90\x01\x10TB.TotNbrDlInitial\x00\x02\x022\x00\xc0RRU.PrbUsedDl\x00\x01Y\x01\x10TB.ErrTotalNbrDl.1\x00\x01^\x01\xd0QosFlow.PdcpPduVolumeDL_Filter\x00\x03\x02hZ\x01\x10DRB.BufferSize.Qos\x00\x03\x04'\x03\x01\x10DRB.MeanActiveUeDl\x00\x01\x04\x00\x03@\x0500008\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xad\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x85\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x02,\xc7\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x18\x01`DRB.BufferSize.Qos.UEID\x00\x03\x01o\x15\x00\xf0DRB.UEThpDl.UEID \x00@\x0500009\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xa1\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x8f\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x02\x199\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x16\x01`DRB.BufferSize.Qos.UEID\x00\x03\x01{\x9d\x00\xf0DRB.UEThpDl.UEID \x00@\x0500001\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\x9e\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x92\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x03\x01J \x01\x10RRU.PrbUsedDl.UEID\x00\x01\x15\x01`DRB.BufferSize.Qos.UEID\x00\x02`\x1b\x00\xf0DRB.UEThpDl.UEID \x00@\x0500012\x06\x01\x10TB.TotNbrDl.1.UEID\x00\x02\x00\xa4\x01`TB.TotNbrDlInitial.UEID\x00\x02\x00\x8c\x02 QosFlow.PdcpPduVolumeDL_Filter.UEID\x00\x03\x00\xd8:\x01\x10RRU.PrbUsedDl.UEID\x00\x01\x16\x01`DRB.BufferSize.Qos.UEID\x00\x03\x00\xdc6\x00\xf0DRB.UEThpDl.UEID \x00\x00\x14\x00\x05\x04cpid"
+    def decode_sci_tag_proto(self, input_bytes):
+        _msg: Message = Message()
+        _msg.ParseFromString(input_bytes)
+        _sci_tag:sci_tag.NrSlMacPduTagProto = sci_tag.NrSlMacPduTagProto(_msg)
+        frameNum = _sci_tag.m_sfnSf.m_frameNum
+        subframeNum = _sci_tag.m_sfnSf.m_subframeNum
+        slotNum = _sci_tag.m_sfnSf.m_slotNum
+        numerology = _sci_tag.m_sfnSf.m_numerology
+        rnti = _sci_tag.m_rnti
+        symStart = _sci_tag.m_symStart
+        numSym = _sci_tag.m_numSym
+        tbSize = _sci_tag.m_tbSize
+        dstL2Id = _sci_tag.m_dstL2Id
+        return (frameNum, subframeNum, slotNum, numerology, rnti, symStart, numSym, tbSize, dstL2Id)
 
 def generate_sched_data() -> List[SourceUserScheduling]:
     v2x_scheduling_source_users: List[SourceUserScheduling] = []
@@ -408,7 +446,8 @@ def test_single_source_sched():
     print(data_bytes.hex())
 
 if __name__ == '__main__':
-    test_single_source_sched()
+    # test_single_source_sched()
+    _asn1_c_lib = ctypes.CDLL("libe2sim.so", mode=ctypes.RTLD_GLOBAL)
     # _encoder = RicControlMessageEncoder()
     # print("decoding data")
     # v2x_scheduling_source_users = generate_sched_data()

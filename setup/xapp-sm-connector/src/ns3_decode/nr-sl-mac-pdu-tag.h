@@ -27,7 +27,7 @@
 #include "tag.h"
 #include "ns_assert.h"
 
-#include <sl-sci-msg.pb.h>
+#include <sl-mac-pdu-tag.pb.h>
 
 namespace ns3 {
 

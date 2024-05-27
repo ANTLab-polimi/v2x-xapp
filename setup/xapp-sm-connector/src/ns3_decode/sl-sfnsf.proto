@@ -1,0 +1,14 @@
+
+
+
+syntax = "proto3";
+// package protobuf_net;
+package ns3;
+// option csharp_namespace = "ns";
+
+message SfnSfProto{
+    uint32 m_frameNum = 1;
+    uint32 m_subframeNum = 2;
+    uint32 m_slotNum = 3;
+    int32 m_numerology = 4;
+}

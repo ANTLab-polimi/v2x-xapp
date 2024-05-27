@@ -10,7 +10,8 @@
 #include <vector>
 #include <set>
 
-#include <ns3/sl-sci-msg.pb.h>
+
+#include "sl-slot-alloc.pb.h"
 
 namespace ns3 {
 
@@ -32,6 +33,12 @@ struct SlRlcPduInfo
   {}
   uint8_t lcid  {0}; //!< The Logical channel id
   uint32_t size {0}; //!< The transport block size
+
+  SlRlcPduInfo (SlRlcPduInfoProto protoBuf)
+  {
+    lcid = protoBuf.lcid();
+    size = protoBuf.size();
+  }
 };
 /**
  * \ingroup utils

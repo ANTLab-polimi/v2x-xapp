@@ -25,6 +25,10 @@ file(GLOB HEADERS "*.h")
 # set(SOURCES control_message_encoder_decoder.cc handover_control_message.cc)
 # set(HEADERS control_message_encoder_decoder.h handover_control_message.h)
 
+# include(FindProtobuf)
+# find_package(Protobuf REQUIRED)
+# include_directories(${Protobuf_INCLUDE_DIRS})
+
 include_directories(../../asn1c_defs)
 include_directories(../../ns3-decode)
 # include_directories(/usr/include)
@@ -33,6 +37,11 @@ include_directories(../../ns3-decode)
 # add_library( ric_control_objects OBJECT ${SOURCES})
 add_library( ric_control_objects OBJECT ${SOURCES} E2SM-RC-ControlMessage.c tinyxml2.cpp)
 target_compile_definitions(ric_control_objects PUBLIC ASN_DISABLE_OER_SUPPORT)
+
+# target_link_libraries(ric_control_objects PUBLIC 
+#   ${Protobuf_LIBRARY}
+# )
+# libproto
 
 target_include_directories (ric_control_objects PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

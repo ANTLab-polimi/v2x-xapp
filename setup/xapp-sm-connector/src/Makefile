@@ -110,4 +110,4 @@ install: hw_xapp_main
 
 # $(RICCONTROLSRC)/*.o test_msg_creation
 clean:
-	-rm *.o $(NS3DECODE_OBJ)/*.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
+	-rm *.o $(NS3DECODESRC) $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 

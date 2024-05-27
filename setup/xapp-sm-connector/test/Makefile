@@ -22,18 +22,21 @@ LOG_LIBS:= `pkg-config mdclog --libs`
 CURL_LIBS:= `pkg-config libcurl --libs`
 RNIB_LIBS:= -pthread /usr/local/include/rnib/rnibreader.a
 GTEST_LIBS:= -lgtest -lgtest_main
+
 ######## Keep include dirs separate so we have transparency
 
 
 BASEFLAGS=  -Wall -std=c++14 $(CLOGFLAGS) 
 C_BASEFLAGS= -Wall $(CLOGFLAGS) -DASN_DISABLE_OER_SUPPORT
 
+NS3DECODELIBS:= `pkg-config --cflags --libs protobuf`
+
 XAPPFLAGS= -I$(SRC)
 UTILFLAGS= -I$(UTILSRC)
 MGMTFLAGS= -I$(MGMTSRC)
 
 # modified
-NS3DECODEFLAGS=-I$(NS3DECODESRC)
+NS3DECODEFLAGS=-I$(NS3DECODESRC) -I/usr/include -ldl
 TINYXMLFLAGS = -I$(TINYXMLSRC)
 CONTROLMESSAGEFLAGS = -I$(RICCONTROLSRC)
 # end modification
@@ -41,13 +44,15 @@ ASNFLAGS = -I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
 E2APFLAGS = -I$(E2APSRC)
 E2SMFLAGS = -I$(E2SMSRC)
 
+
+
 ########libs
 
 LIBS= -lsdl -lrmr_si -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS) # $(GTEST_LIBS)
 COV_FLAGS= -fprofile-arcs -ftest-coverage
 
 #######
-TEST_SRC= v2x_scheduling_test.cc hw_unit_tests.cc decoding_test.cc decode_e2ap_pdu_test.cc
+TEST_SRC= v2x_scheduling_test.cc hw_unit_tests.cc decoding_test.cc decode_e2ap_pdu_test.cc protobuf_test.cc
 XAPP_SRC= ../src/xapp.cc ../src/agent_connector.cc
 TEST_HDR=$(wildcard $(TEST)/*.h)
 UTIL_SRC= $(wildcard $(UTILSRC)/*.cc)
@@ -90,12 +95,12 @@ $(E2AP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2APFLAGS)
 $(E2SM_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2SMFLAGS)
 $(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MGMTFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(TINYXMLFLAGS)
 
-$(TEST_OBJ):export CPPFLAGS=$(BASEFLAGS) $(ASNFLAGS) $(TINYXMLFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)
+$(TEST_OBJ):export CPPFLAGS=$(BASEFLAGS) $(ASNFLAGS) $(TINYXMLFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)  $(NS3DECODELIBS)
 # $(TEST_OBJ) = $(TEST_HDR) $(TEST_OBJ) 
 
 # modified
 $(TINYXML_OBJ):export CPPFLAGS= $(BASEFLAGS) $(TINYXMLFLAGS)
-$(NS3DECODE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(NS3DECODEFLAGS)
+$(NS3DECODE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(NS3DECODEFLAGS) $(NS3DECODELIBS)
 $(CONTROL_MESSAGE_OBJ):export CPPFLAGS= $(BASEFLAGS) $(C_BASEFLAGS) $(CONTROLMESSAGEFLAGS) $(ASNFLAGS) $(TINYXMLFLAGS) $(NS3DECODEFLAGS)
 $(CONTROL_MESSAGE_C_FILES_OBJ):export CFLAGS= $(BASEFLAGS) $(C_BASEFLAGS) $(CONTROLMESSAGEFLAGS) $(ASNFLAGS) $(TINYXMLFLAGS) $(NS3DECODEFLAGS)
 # end modification
@@ -117,6 +122,12 @@ v2x_scheduling_test: $(OBJ)
 decode_e2ap_pdu_test: $(OBJ)
 	$(CXX) -o $@ $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(TINYXMLFLAGS) $(ASNFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)
 
+protobuf_test: $(OBJ)
+	$(CXX) -o $@ $(OBJ) $(LIBS) $(NS3DECODELIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) $(TINYXMLFLAGS) $(ASNFLAGS) $(NS3DECODEFLAGS) $(CONTROLMESSAGEFLAGS)
+
+# protobuf_test: $(OBJ)
+# 	$(CXX) -o $@ $(NS3DECODE_OBJ) $(LIBS) $(NS3DECODELIBS) $(NS3DECODEFLAGS)  $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS)
+
 # install: hw_unit_tests decoding_test v2x_scheduling_test
 # 	install  -D hw_unit_tests  /usr/local/bin/hw_unit_tests
 # 	install  -D decoding_test  /usr/local/bin/decoding_test
@@ -128,8 +139,11 @@ decode_e2ap_pdu_test: $(OBJ)
 # install: v2x_scheduling_test
 # 	install -D v2x_scheduling_test  /usr/local/bin/v2x_scheduling_test
 
-install: decode_e2ap_pdu_test
-	install -D decode_e2ap_pdu_test  /usr/local/bin/decode_e2ap_pdu_test
+# install: decode_e2ap_pdu_test
+# 	install -D decode_e2ap_pdu_test  /usr/local/bin/decode_e2ap_pdu_test
+
+install: protobuf_test
+	install -D protobuf_test  /usr/local/bin/protobuf_test
 
 test: decoding_test
 	./decoding_test
@@ -144,9 +158,12 @@ check_scheduling: v2x_scheduling_test
 check_e2ap: decode_e2ap_pdu_test
 	./decode_e2ap_pdu_test
 
+check_protobuf_test: protobuf_test
+	./protobuf_test
+
 clean:
 	-rm *.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MGMTSRC)/*.o $(SRC)/*.o \
 	$(RICCONTROLSRC)/*.o $(NS3DECODESRC)/*.o $(TINYXMLSRC)/*.o \
-	decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test
+	decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test protobuf_test
 
-.PHONY: decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test
+.PHONY: decoding_test hw_unit_tests v2x_scheduling_test decode_e2ap_pdu_test protobuf_test

@@ -19,6 +19,11 @@
 
 
 #include "nr-sl-phy-mac-common.h"
+// #include <sl-sci-msg.pb.h>
+// #include "sl-mac-pdu-tag.pb.h"
+// #include "sl-sci-f1a-header.pb.h"
+#include "sl-sfnsf.pb.h"
+#include "google/protobuf/message.h"
 
 namespace ns3 {
 

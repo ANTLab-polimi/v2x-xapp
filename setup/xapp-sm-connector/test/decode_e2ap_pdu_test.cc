@@ -28,7 +28,7 @@ char* converHexToByteLocal(std::string hexString) {
     return bytes;
 }  
 
-int main(int argc, char* argv[])
+int main_decode(int argc, char* argv[])
 {
 
 

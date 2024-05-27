@@ -83,10 +83,17 @@ set ( srcd "${CMAKE_CURRENT_SOURCE_DIR}" )
 #
 include_directories("${srcd}/asn1c_defs;${srcd}/src/ns3_decode;${srcd}/src/xapp_ric_control")
 
+message("Find protobuf")
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+
+message("Find protobuf in main cmakelist ${Protobuf_INCLUDE_DIRS}")
+
 
 # Compiler flags
 #
 set( CMAKE_POSITION_INDEPENDENT_CODE ON )
+set( CMAKE_NO_VERBOSE 1 )
 # set( CMAKE_C_FLAGS "-g " )
 set( CMAKE_C_FLAGS "-g " )
 set( CMAKE_CPP_FLAGS "-g " )
@@ -107,31 +114,40 @@ add_subdirectory(src/xapp_ric_control)
 # we only build/export the static archive (.a) if generating a dev package
 if( DEV_PKG )
     	add_library( e2sim_static STATIC
-        	     "$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:asn1_objects>"
+        	     "$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:asn1_objects>"
 	)
 
 	set_target_properties( e2sim_static
-   			       PROPERTIES
-   			       OUTPUT_NAME "e2sim"
-   			       SOVERSION 1
-   			       VERSION ${major_version}.${minor_version}.${patch_level}
+   			       	PROPERTIES
+					# LINK_FLAGS "-Wl,--whole-archive"
+					OUTPUT_NAME "e2sim"
+					SOVERSION 1
+					VERSION ${major_version}.${minor_version}.${patch_level}
 	)
 
 	target_include_directories(e2sim_static PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC  "src/xapp_ric_control")	
-	target_include_directories(e2sim_static PUBLIC "/usr/local/${install_inc}")
+	target_include_directories(e2sim_static PUBLIC "/usr/local/${install_inc}" PUBLIC ${Protobuf_INCLUDE_DIRS})
 	# target_include_directories( e2sim_static PUBLIC include)
+	# target_link_libraries(e2sim_static PUBLIC protobuf::libprotobuf)
+	# message("Linking static e2 sim library to protobuf ${Protobuf_LIBRARIES}")
+	# target_link_directories(e2sim_static PUBLIC ${Protobuf_LIBRARIES})
 else()
 	add_library( e2sim_shared SHARED
-		"$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:asn1_objects>"
+		"$<TARGET_OBJECTS:ns3_decode_objects>;$<TARGET_OBJECTS:ric_control_objects>;$<TARGET_OBJECTS:asn1_objects>"
 	)
 	set_target_properties( e2sim_shared
-   			       PROPERTIES
-   			       OUTPUT_NAME "e2sim"
-   			       SOVERSION 1
-   			       VERSION ${major_version}.${minor_version}.${patch_level}
+   			       	PROPERTIES
+					# LINK_FLAGS "-Wl,--whole-archive"
+					OUTPUT_NAME "e2sim"
+					SOVERSION 1
+					VERSION ${major_version}.${minor_version}.${patch_level}
 	)
 	target_include_directories(e2sim_shared PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC "src/xapp_ric_control")	
-	target_include_directories(e2sim_shared PUBLIC "/usr/local/${install_inc}")
+	target_include_directories(e2sim_shared PUBLIC "/usr/local/${install_inc}" PUBLIC ${Protobuf_INCLUDE_DIRS})
+	# target_link_libraries(e2sim_static PUBLIC protobuf::libprotobuf)
+	message("Linking shared e2 sim library to protobuf ${Protobuf_LIBRARIES}")
+	target_link_libraries(e2sim_shared PUBLIC ${Protobuf_LIBRARY})
+	# target_link_libraries(e2sim_shared PUBLIC ${Protobuf_LIBRARIES})
 endif()
 
 

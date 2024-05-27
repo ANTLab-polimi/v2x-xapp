@@ -1,0 +1,24 @@
+syntax = "proto3";
+package ns3;
+
+message NrSlSciF1aHeaderProto {
+
+    enum SciStage2Format_tProto {
+        SciFormat2A = 0;
+        SciFormat2B = 1;
+    };
+
+    uint32 m_totalSubChannels = 1;
+    uint32 m_priority = 2;
+    uint32 m_indexStartSubChannel = 3;
+    uint32 m_lengthSubChannel = 4;
+    uint32 m_mcs = 5;
+    uint32 m_slResourceReservePeriod = 6;
+    uint32 m_slMaxNumPerReserve = 7;
+    uint32 m_slSciStage2Format = 8;
+    uint32 m_indexStartSbChReTx1 = 9;
+    uint32 m_indexStartSbChReTx2 = 10;
+    uint32 m_gapReTx1 = 11;
+    uint32 m_gapReTx2 = 12;
+    repeated SciStage2Format_tProto sciFormat = 13 [packed=true];
+}

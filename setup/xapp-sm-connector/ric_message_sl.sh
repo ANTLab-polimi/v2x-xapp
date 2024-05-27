@@ -19,8 +19,11 @@ fi
 
 # build
 cd build || (echo "build folder does not exist, the script will create it" && mkdir build && cd build)
-cmake .. -DDEV_PKG=0 -DLOG_LEVEL=${log_level}
+cmake .. -DDEV_PKG=0 -DLOG_LEVEL=${log_level} 
 make package
+
+# -Dprotobuf_BUILD_SHARED_LIBS=ON
+# -Dprotobuf_MSVC_STATIC_RUNTIME=ON
 
 # uninstall old versions
 # echo "Going to remove e2sim-dev"

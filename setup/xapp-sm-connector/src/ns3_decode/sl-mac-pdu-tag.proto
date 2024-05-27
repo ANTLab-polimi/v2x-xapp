@@ -1,0 +1,14 @@
+
+syntax = "proto3";
+package ns3;
+import "sl-sfnsf.proto";
+
+message NrSlMacPduTagProto {
+
+    uint32 m_rnti = 1;
+    uint32 m_symStart = 2;
+    uint32 m_numSym = 3;
+    uint32 m_tbSize = 4;
+    uint32 m_dstL2Id = 5;
+    SfnSfProto m_sfnSf = 6;
+}

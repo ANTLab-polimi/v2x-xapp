@@ -30,7 +30,7 @@
 
 #include "tinyxml2.h"
 
-#include "sl-sci-msg.pb.h"
+// #include "sl-sci-msg.pb.h"
 
 template<typename T>
 std::vector<int> findItems(std::vector<T> const &v, int target) {
@@ -329,9 +329,9 @@ decode_v2x_sci_header(uint8_t* buffer, size_t buffSize){
     
         // Protobuff deserialization
         ns3::NrSlSciF1aHeader sciHeader = ns3::NrSlSciF1aHeader();
-        ns3::NrSlSciF1aHeaderProto sciHeaderProto = ns3::NrSlSciF1aHeaderProto();        
-        sciHeaderProto.ParseFromArray(bufferHeader, s.length());
-        sciHeader.DeserializeFromProtoBuff(sciHeaderProto);
+        // ns3::NrSlSciF1aHeaderProto sciHeaderProto = ns3::NrSlSciF1aHeaderProto();        
+        // sciHeaderProto.ParseFromArray(bufferHeader, s.length());
+        // sciHeader.DeserializeFromProtoBuff(sciHeaderProto);
 
         data = new v2x_sci_header_buffer_t(sciHeader);
         free(bufferHeader);
@@ -366,9 +366,9 @@ decode_v2x_sci_tag(uint8_t* buffer, size_t buffSize){
         // sciTag.DeserializeForE2(bufferSciTagIt);
 
         ns3::NrSlMacPduTag sciTag = ns3::NrSlMacPduTag();
-        ns3::NrSlMacPduTagProto sciTagProto = ns3::NrSlMacPduTagProto();        
-        sciTagProto.ParseFromArray(bufferTag, s.length());
-        sciTag.DeserializeFromProtoBuff(sciTagProto);
+        // ns3::NrSlMacPduTagProto sciTagProto = ns3::NrSlMacPduTagProto();        
+        // sciTagProto.ParseFromArray(bufferTag, s.length());
+        // sciTag.DeserializeFromProtoBuff(sciTagProto);
 
         data = new v2x_sci_tag_buffer_t(sciTag);
         free(bufferTag);
@@ -599,11 +599,11 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
                 // protobuf serialization
 
                 ns3::NrSlSlotAllocProto nrSlSlotProto = nrSlSlotAlloc.GenerateProtoBuff();
-                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlSlotProto.ByteSize());
-                nrSlSlotProto.SerializeToArray(bufferNrSlotAllocBuffer, nrSlSlotProto.ByteSize());
-                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlSlotProto.ByteSize()));
-                schedulingItem->nrSlotAllocBuffer.size = (nrSlSlotProto.ByteSize());
-                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlSlotProto.ByteSize()));
+                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlSlotProto.ByteSizeLong());
+                nrSlSlotProto.SerializeToArray(bufferNrSlotAllocBuffer, nrSlSlotProto.ByteSizeLong());
+                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlSlotProto.ByteSizeLong()));
+                schedulingItem->nrSlotAllocBuffer.size = (nrSlSlotProto.ByteSizeLong());
+                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlSlotProto.ByteSizeLong()));
 
                 ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
             }
