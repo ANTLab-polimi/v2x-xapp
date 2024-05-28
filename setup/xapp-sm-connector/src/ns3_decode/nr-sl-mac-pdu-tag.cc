@@ -212,13 +212,20 @@ NrSlMacPduTag::GenerateProtoBuff (void) const
   NrSlMacPduTagProto tagProto = NrSlMacPduTagProto();
   tagProto.set_m_rnti(m_rnti);
   
-  SfnSfProto sfnProto = SfnSfProto();
-  sfnProto.set_m_framenum(m_sfnSf.GetFrame());
-  sfnProto.set_m_subframenum(m_sfnSf.GetSubframe());
-  sfnProto.set_m_slotnum(m_sfnSf.GetSlot());
-  sfnProto.set_m_numerology(m_sfnSf.GetNumerology());
+  // SfnSfProto sfnProto = SfnSfProto();
+  // sfnProto.set_m_framenum(m_sfnSf.GetFrame());
+  // sfnProto.set_m_subframenum(m_sfnSf.GetSubframe());
+  // sfnProto.set_m_slotnum(m_sfnSf.GetSlot());
+  // sfnProto.set_m_numerology(m_sfnSf.GetNumerology());
+  // tagProto.set_allocated_m_sfnsf(&sfnProto);
 
-  tagProto.set_allocated_m_sfnsf(&sfnProto);
+  auto sfnProto = std::make_unique<SfnSfProto>();
+  sfnProto->set_m_framenum(m_sfnSf.GetFrame());
+  sfnProto->set_m_subframenum(m_sfnSf.GetSubframe());
+  sfnProto->set_m_slotnum(m_sfnSf.GetSlot());
+  sfnProto->set_m_numerology(m_sfnSf.GetNumerology());
+  tagProto.set_allocated_m_sfnsf(sfnProto.release());
+
   tagProto.set_m_symstart(m_symStart);
   tagProto.set_m_numsym(m_numSym);
   tagProto.set_m_tbsize(m_tbSize);

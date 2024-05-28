@@ -31,6 +31,8 @@
 #include "tinyxml2.h"
 
 // #include "sl-sci-msg.pb.h"
+#include "sl-slot-alloc.pb.h"
+#include "sl-sfnsf.pb.h"
 
 template<typename T>
 std::vector<int> findItems(std::vector<T> const &v, int target) {
@@ -329,9 +331,9 @@ decode_v2x_sci_header(uint8_t* buffer, size_t buffSize){
     
         // Protobuff deserialization
         ns3::NrSlSciF1aHeader sciHeader = ns3::NrSlSciF1aHeader();
-        // ns3::NrSlSciF1aHeaderProto sciHeaderProto = ns3::NrSlSciF1aHeaderProto();        
-        // sciHeaderProto.ParseFromArray(bufferHeader, s.length());
-        // sciHeader.DeserializeFromProtoBuff(sciHeaderProto);
+        ns3::NrSlSciF1aHeaderProto sciHeaderProto = ns3::NrSlSciF1aHeaderProto();        
+        sciHeaderProto.ParseFromArray(bufferHeader, s.length());
+        sciHeader.DeserializeFromProtoBuff(sciHeaderProto);
 
         data = new v2x_sci_header_buffer_t(sciHeader);
         free(bufferHeader);
@@ -366,9 +368,9 @@ decode_v2x_sci_tag(uint8_t* buffer, size_t buffSize){
         // sciTag.DeserializeForE2(bufferSciTagIt);
 
         ns3::NrSlMacPduTag sciTag = ns3::NrSlMacPduTag();
-        // ns3::NrSlMacPduTagProto sciTagProto = ns3::NrSlMacPduTagProto();        
-        // sciTagProto.ParseFromArray(bufferTag, s.length());
-        // sciTag.DeserializeFromProtoBuff(sciTagProto);
+        ns3::NrSlMacPduTagProto sciTagProto = ns3::NrSlMacPduTagProto();        
+        sciTagProto.ParseFromArray(bufferTag, s.length());
+        sciTag.DeserializeFromProtoBuff(sciTagProto);
 
         data = new v2x_sci_tag_buffer_t(sciTag);
         free(bufferTag);
@@ -599,13 +601,16 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
                 // protobuf serialization
 
                 ns3::NrSlSlotAllocProto nrSlSlotProto = nrSlSlotAlloc.GenerateProtoBuff();
-                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, nrSlSlotProto.ByteSizeLong());
-                nrSlSlotProto.SerializeToArray(bufferNrSlotAllocBuffer, nrSlSlotProto.ByteSizeLong());
-                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, (nrSlSlotProto.ByteSizeLong()));
-                schedulingItem->nrSlotAllocBuffer.size = (nrSlSlotProto.ByteSizeLong());
-                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, (nrSlSlotProto.ByteSizeLong()));
-
+                size_t serializatinSize = nrSlSlotProto.ByteSizeLong();
+                schedulingItem->nrSlotAllocBuffer.buf = (uint8_t *) calloc (1, serializatinSize);
+                schedulingItem->nrSlotAllocBuffer.size = serializatinSize;
+                uint8_t *bufferNrSlotAllocBuffer = (uint8_t *) calloc (1, serializatinSize);
+                // void *bufferNrSlotAllocBuffer = malloc(serializatinSize);
+                bool res = nrSlSlotProto.SerializeToArray(bufferNrSlotAllocBuffer, serializatinSize);
+                // std::cout << "Encoded res " << res << " with size " << serializatinSize << std::endl;
+                memcpy (schedulingItem->nrSlotAllocBuffer.buf, bufferNrSlotAllocBuffer, serializatinSize);
                 ASN_SEQUENCE_ADD(&v2XSingleUserScheduling->V2X_Scheduling_ItemList.list, schedulingItem);
+                nrSlSlotProto.Clear();
             }
             // add this user the the list of all users
             ASN_SEQUENCE_ADD(&v2XSourceUserScheduling->V2X_Scheduling_DestinationList.list, v2XSingleUserScheduling);
@@ -630,7 +635,6 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
 
     // xer_fprint(stdout, &asn_DEF_E2SM_RC_ControlMessage, rcControlMessage);
     // afterwords we have to generate the data part
-
     // char printBuffer[40960]{};
     // char *tmp = printBuffer;
     // for (size_t _buffInd = 0; (size_t)_buffInd<data->length; ++_buffInd){
@@ -639,7 +643,6 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
     //     // std::cout << std::setfill('0') << std::setw(2) << data.buffer[_buffInd];
     // }
     // printf("Buffer %s \n", printBuffer);
-
     // freeing all the data before returning the struct
     free(v2XSchedulingAllUsersListPlmn);
     return data;

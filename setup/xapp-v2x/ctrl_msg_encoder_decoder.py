@@ -447,13 +447,12 @@ def test_single_source_sched():
 
 if __name__ == '__main__':
     # test_single_source_sched()
-    _asn1_c_lib = ctypes.CDLL("libe2sim.so", mode=ctypes.RTLD_GLOBAL)
-    # _encoder = RicControlMessageEncoder()
+    _encoder = RicControlMessageEncoder()
     # print("decoding data")
-    # v2x_scheduling_source_users = generate_sched_data()
+    v2x_scheduling_source_users = generate_sched_data()
 
-    # _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_source_users, "111")
-    # print("Encoded data length " + str(_data_length))
+    _data_length, _data_bytes = _encoder.encode_scheduling_plmn(v2x_scheduling_source_users, "111")
+    print("Encoded data length " + str(_data_length))
 
-    # print("Ended")
+    print("Ended")
 

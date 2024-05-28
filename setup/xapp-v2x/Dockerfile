@@ -59,10 +59,6 @@ RUN  apt update && apt install -y g++ unzip zip && pip install protobuf==3.20.*
 
 WORKDIR /home
 
-RUN rm -R ${CONNECTOR_DIR}
-
-COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}/
-# COPY ${CONNECTOR_DIR} /home
 # COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
 COPY ${XAPP_DIR}/ /home/${XAPP_DIR}/
 # COPY ${XAPP_DIR} /home
@@ -72,14 +68,15 @@ COPY ${XAPP_DIR}/ /home/${XAPP_DIR}/
 # COPY ${IPSO_DIR} /home/${IPSO_DIR}
 
 
+RUN rm -R ${CONNECTOR_DIR}
+COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}/
+WORKDIR ${STAGE_DIR}
+RUN mkdir -p build
+RUN chmod +x ric_message_sl.sh && ./ric_message_sl.sh
 
 # RUN cd src/ns3_decode \
 #     && protoc --cpp_out=. sl-sci-msg.proto \
 #     && cd ../..
-
-WORKDIR ${STAGE_DIR}
-
-RUN ./ric_message_sl.sh
 
 ##-----------------------------------
 # Now install the program

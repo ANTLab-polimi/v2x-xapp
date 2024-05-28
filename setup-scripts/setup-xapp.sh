@@ -96,6 +96,8 @@ docker exec ${CONTAINER_NAME} chmod +x /home/${CONNECTOR_DIR}/rebuild_xapp.sh
 docker exec ${CONTAINER_NAME} chmod +x /home/${CONNECTOR_DIR}/ric_message_sl.sh
 docker exec ${CONTAINER_NAME} chmod +x /home/${CONNECTOR_DIR}/run_xapp.sh
 
+# docker exec ${CONTAINER_NAME} /home/${CONNECTOR_DIR}/ric_message_sl.sh
 docker exec ${CONTAINER_NAME} /home/${CONNECTOR_DIR}/build_xapp.sh clean
+
 docker container restart ${CONTAINER_NAME}
 

@@ -151,12 +151,19 @@ NrSlSlotAlloc::GenerateProtoBuff (void) const
 {
   NrSlSlotAllocProto allocProto = NrSlSlotAllocProto();
   
-  SfnSfProto sfnProto = SfnSfProto();
-  sfnProto.set_m_framenum(sfn.GetFrame());
-  sfnProto.set_m_subframenum(sfn.GetSubframe());
-  sfnProto.set_m_slotnum(sfn.GetSlot());
-  sfnProto.set_m_numerology(sfn.GetNumerology());
-  allocProto.set_allocated_sfn(&sfnProto);
+  // SfnSfProto sfnProto = SfnSfProto();
+  // sfnProto.set_m_framenum(sfn.GetFrame());
+  // sfnProto.set_m_subframenum(sfn.GetSubframe());
+  // sfnProto.set_m_slotnum(sfn.GetSlot());
+  // sfnProto.set_m_numerology(sfn.GetNumerology());
+  // allocProto.set_allocated_sfn(&sfnProto);
+
+  auto sfnProto = std::make_unique<SfnSfProto>();
+  sfnProto->set_m_framenum(sfn.GetFrame());
+  sfnProto->set_m_subframenum(sfn.GetSubframe());
+  sfnProto->set_m_slotnum(sfn.GetSlot());
+  sfnProto->set_m_numerology(sfn.GetNumerology());
+  allocProto.set_allocated_sfn(sfnProto.release());
 
   allocProto.set_dstl2id(dstL2Id);
   allocProto.set_ndi(ndi);

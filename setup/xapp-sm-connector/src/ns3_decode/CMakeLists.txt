@@ -95,6 +95,8 @@ target_compile_definitions(ns3_decode_objects PUBLIC ASN_DISABLE_OER_SUPPORT)
 # )
 # target_link_libraries(ns3_decode_objects PUBLIC protobuf::libprotobuf)
 
+target_link_libraries(ns3_decode_objects PUBLIC ${Protobuf_LIBRARY})
+
 target_include_directories (ns3_decode_objects PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
