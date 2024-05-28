@@ -4,7 +4,7 @@ syntax = "proto3";
 package ns3;
 // option csharp_namespace = "ns";
 
-import "sl-sfnsf.proto";
+// import "proto/sl-sfnsf.proto";
 
 // message SfnSfProto{
 //     uint32 m_frameNum = 1;

@@ -1,7 +1,7 @@
 
 syntax = "proto3";
 package ns3;
-import "sl-sfnsf.proto";
+import "proto/sl-sfnsf.proto";
 message SlRlcPduInfoProto{
     uint32 lcid = 1;
     uint32 size = 2;

@@ -31,6 +31,7 @@ file(GLOB HEADERS "*.h")
 
 include_directories(../../asn1c_defs)
 include_directories(../../ns3-decode)
+include_directories(../../ns3-decode/proto)
 # include_directories(/usr/include)
 # include_directories(.)
 

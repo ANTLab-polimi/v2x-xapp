@@ -81,7 +81,7 @@ set ( srcd "${CMAKE_CURRENT_SOURCE_DIR}" )
 # but Cmake insists on having these exist when we add them to include directories to
 # enable code to find them after we build them.
 #
-include_directories("${srcd}/asn1c_defs;${srcd}/src/ns3_decode;${srcd}/src/xapp_ric_control")
+include_directories("${srcd}/asn1c_defs;${srcd}/src/ns3_decode;${srcd}/src/ns3_decode/proto;${srcd}/src/xapp_ric_control")
 
 message("Find protobuf")
 find_package(Protobuf REQUIRED)
@@ -125,7 +125,7 @@ if( DEV_PKG )
 					VERSION ${major_version}.${minor_version}.${patch_level}
 	)
 
-	target_include_directories(e2sim_static PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC  "src/xapp_ric_control")	
+	target_include_directories(e2sim_static PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC "src/ns3_decode/proto" PUBLIC  "src/xapp_ric_control")	
 	target_include_directories(e2sim_static PUBLIC "/usr/local/${install_inc}" PUBLIC ${Protobuf_INCLUDE_DIRS})
 	# target_include_directories( e2sim_static PUBLIC include)
 	# target_link_libraries(e2sim_static PUBLIC protobuf::libprotobuf)
@@ -142,7 +142,7 @@ else()
 					SOVERSION 1
 					VERSION ${major_version}.${minor_version}.${patch_level}
 	)
-	target_include_directories(e2sim_shared PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC "src/xapp_ric_control")	
+	target_include_directories(e2sim_shared PUBLIC "asn1c_defs" PUBLIC "src/ns3_decode" PUBLIC "src/ns3_decode/proto" PUBLIC "src/xapp_ric_control")	
 	target_include_directories(e2sim_shared PUBLIC "/usr/local/${install_inc}" PUBLIC ${Protobuf_INCLUDE_DIRS})
 	# target_link_libraries(e2sim_static PUBLIC protobuf::libprotobuf)
 	message("Linking shared e2 sim library to protobuf ${Protobuf_LIBRARIES}")

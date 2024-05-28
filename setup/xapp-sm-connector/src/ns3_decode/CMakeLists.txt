@@ -12,9 +12,9 @@ set( install_lib "${CMAKE_INSTALL_LIBDIR}" )
 file(GLOB SOURCES "*.cc")
 file(GLOB HEADERS "*.h")
 # file(GLOB PROTOBUF_FILELIST "*.proto")
-set(PROTOBUF_FILELIST sl-mac-pdu-tag.proto sl-sci-f1a-header.proto sl-sfnsf.proto sl-slot-alloc.proto)
-set(PROTOBUF_Headers sl-mac-pdu-tag.pb.h sl-sci-f1a-header.pb.h sl-sfnsf.pb.h sl-slot-alloc.pb.h)
-set(PROTOBUF_sources sl-mac-pdu-tag.pb.cc sl-sci-f1a-header.pb.cc sl-sfnsf.pb.cc sl-slot-alloc.pb.cc)
+set(PROTOBUF_FILELIST proto/sl-mac-pdu-tag.proto proto/sl-sci-f1a-header.proto proto/sl-sfnsf.proto proto/sl-slot-alloc.proto)
+set(PROTOBUF_Headers proto/sl-mac-pdu-tag.pb.h proto/sl-sci-f1a-header.pb.h proto/sl-sfnsf.pb.h proto/sl-slot-alloc.pb.h)
+set(PROTOBUF_sources proto/sl-mac-pdu-tag.pb.cc proto/sl-sci-f1a-header.pb.cc proto/sl-sfnsf.pb.cc proto/sl-slot-alloc.pb.cc)
 
 
 # include(FindProtobuf)

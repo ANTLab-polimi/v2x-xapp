@@ -57,12 +57,14 @@ RUN  apt update && apt install -y g++ unzip zip && pip install protobuf==3.20.*
 #   && cd protobuf-27.0 \
 #   && bazel build :protoc :protobuf
 
+WORKDIR /home
 
+RUN rm -R ${CONNECTOR_DIR}
 
-# COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}
+COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}/
 # COPY ${CONNECTOR_DIR} /home
 # COPY ${CONNECTOR_DIR}/init ${STAGE_DIR}/init
-# COPY ${XAPP_DIR}/ /home/${XAPP_DIR}
+COPY ${XAPP_DIR}/ /home/${XAPP_DIR}/
 # COPY ${XAPP_DIR} /home
 # COPY ${CONNECTOR_DIR}/src/xapp.cc ${STAGE_DIR}/src 
 # COPY ${CONNECTOR_DIR}/src/ns3_decode/* ${STAGE_DIR}/src
@@ -76,6 +78,8 @@ RUN  apt update && apt install -y g++ unzip zip && pip install protobuf==3.20.*
 #     && cd ../..
 
 WORKDIR ${STAGE_DIR}
+
+RUN ./ric_message_sl.sh
 
 ##-----------------------------------
 # Now install the program
@@ -98,7 +102,7 @@ RUN export CPATH=$CPATH:/usr/local/include \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-RUN ./ric_message_sl.sh
+
 
 
 

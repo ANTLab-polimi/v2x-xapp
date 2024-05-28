@@ -82,8 +82,8 @@ $SUDO docker run -d -it --entrypoint ${ENTRYPOINT} --network ric --ip ${XAPP_IP}
 #     -e DBAAS_SERVICE_HOST=$DBAAS_IP -e DBAAS_SERVICE_PORT=$DBAAS_PORT --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest
 
 
-docker cp ${SETUP_DIR}/${CONNECTOR_DIR}/src/. ${CONTAINER_NAME}:/home/${CONNECTOR_DIR}/
-docker cp ${SETUP_DIR}/${MODEL_DIR}/. ${CONTAINER_NAME}:/home/${MODEL_DIR}/
+# docker cp ${SETUP_DIR}/${CONNECTOR_DIR}/src/. ${CONTAINER_NAME}:/home/${CONNECTOR_DIR}/
+# docker cp ${SETUP_DIR}/${MODEL_DIR}/. ${CONTAINER_NAME}:/home/${MODEL_DIR}/
 
 if [ -n "${GNB_ID}" ]; then
     docker exec ${CONTAINER_NAME} sed -i "s/^export GNB_ID.*/export GNB_ID=${GNB_ID}/g" /home/${CONNECTOR_DIR}/build_xapp.sh
