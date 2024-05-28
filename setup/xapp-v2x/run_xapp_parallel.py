@@ -20,9 +20,9 @@ from time import sleep
 from threading import Thread, Timer
 import multiprocessing as mp
 import copy
-
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 _NUMEROLOGY = 2
+_PARALLEL_SIMULATIONS = 12
 
 _ALLOWED_USED_SF_SLOTS = {
     1:  [0, 1, 2, 3],
@@ -595,7 +595,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
         # in test mode we do not want to delete the received reports before
         recreate_report_files()
 
-    _all_queues = [mp.Queue() for _ in range(8)]
+    _all_queues = [mp.Queue() for _ in range(_PARALLEL_SIMULATIONS)]
     _all_preopt_objs = [V2XPreScheduling() for _ in range(len(_all_queues))]
     _all_sched_objs = [V2XFormulation(_all_preopt_objs[_ind], str(_ind + 111)) for _ind in range(len(_all_queues))]
     
