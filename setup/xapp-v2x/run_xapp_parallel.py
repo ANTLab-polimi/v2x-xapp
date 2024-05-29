@@ -22,7 +22,7 @@ import multiprocessing as mp
 import copy
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 _NUMEROLOGY = 2
-_PARALLEL_SIMULATIONS = 12
+_PARALLEL_SIMULATIONS = 8
 
 _ALLOWED_USED_SF_SLOTS = {
     1:  [0, 1, 2, 3],
