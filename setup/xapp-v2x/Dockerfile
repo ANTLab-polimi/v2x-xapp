@@ -68,11 +68,11 @@ COPY ${XAPP_DIR}/ /home/${XAPP_DIR}/
 # COPY ${IPSO_DIR} /home/${IPSO_DIR}
 
 
-RUN rm -R ${CONNECTOR_DIR}
-COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}/
-WORKDIR ${STAGE_DIR}
-RUN mkdir -p build
-RUN chmod +x ric_message_sl.sh && ./ric_message_sl.sh
+# RUN rm -R ${CONNECTOR_DIR}
+# COPY ${CONNECTOR_DIR}/ ${STAGE_DIR}/
+# WORKDIR ${STAGE_DIR}
+# RUN mkdir -p build
+# RUN chmod +x ric_message_sl.sh && ./ric_message_sl.sh
 
 # RUN cd src/ns3_decode \
 #     && protoc --cpp_out=. sl-sci-msg.proto \
@@ -82,6 +82,8 @@ RUN chmod +x ric_message_sl.sh && ./ric_message_sl.sh
 # Now install the program
 #------------------------------------
 # build connector
+WORKDIR ${STAGE_DIR}
+
 RUN export CPATH=$CPATH:/usr/local/include \
   && cd src \
   && make clean \
