@@ -569,7 +569,7 @@ sctp_buffer_t* generate_e2ap_scheduling_control_message_plmn(v2x_source_slot_all
                     rlRlcPduInfoVec.push_back(ns3::SlRlcPduInfo(slRlcPduInfoIt->lcid, 
                                             slRlcPduInfoIt->size));
                 }
-                std::cout << "control_message_encoder_decoder: ndi " << +userAllocVecIt->ndi << std::endl;
+                // std::cout << "control_message_encoder_decoder: ndi " << +userAllocVecIt->ndi << std::endl;
                 ns3::NrSlSlotAlloc nrSlSlotAlloc = ns3::NrSlSlotAlloc(
                     userAllocVecIt->m_frameNum, userAllocVecIt->m_subframeNum, userAllocVecIt->m_slotNum, userAllocVecIt->m_numerology, 
                     userAllocVecIt->dstL2Id, userAllocVecIt->ndi, userAllocVecIt->rv, userAllocVecIt->priority, 

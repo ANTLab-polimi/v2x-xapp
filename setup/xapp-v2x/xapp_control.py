@@ -41,7 +41,7 @@ def open_control_socket(port: int):
 def send_socket(socket, msg: str):
     bytes_num = socket.send(msg)
     # bytes_num = socket.send(msg.encode('utf-8'))
-    print('Socket sent ' + str(bytes_num) + ' bytes')
+    # print('Socket sent ' + str(bytes_num) + ' bytes')
 
 
 # receive data from socker
