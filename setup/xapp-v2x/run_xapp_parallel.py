@@ -22,7 +22,7 @@ import multiprocessing as mp
 import copy
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 _NUMEROLOGY = 2
-_PARALLEL_SIMULATIONS = 8
+_PARALLEL_SIMULATIONS = 12
 
 _ALLOWED_USED_SF_SLOTS = {
     1:  [0, 1, 2, 3],
@@ -414,7 +414,7 @@ def _send_unblock_msg(plmn:str):
 
 def newTimer(plmn: str):
     global unblocking_msg_timer
-    unblocking_msg_timer = Timer(10, _send_unblock_msg, [plmn])
+    unblocking_msg_timer = Timer(300, _send_unblock_msg, [plmn])
 
 def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation, 
                           v2x_preopt_obj: V2XPreScheduling, plmn: str = "111"):
@@ -658,7 +658,7 @@ def setup_logger():
     # logger.propagate = False
     formatter = logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s')
     console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG)
+    console.setLevel(logging.INFO)
     console.setFormatter(formatter)
     logger.addHandler(console)
     

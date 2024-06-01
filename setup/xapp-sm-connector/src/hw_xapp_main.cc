@@ -22,6 +22,7 @@
  */
 
 #include "xapp.hpp"
+#include <mdclog/mdclog.h>
 #include <thread>
 
 void signalHandler( int signum ) {
@@ -52,7 +53,8 @@ int main(int argc, char *argv[]){
 	signal(SIGTERM, signalHandler);
 
 	// modified
-	mdclog_level_set(DEFAULT_LOG_LEVEL);
+	// mdclog_level_set(DEFAULT_LOG_LEVEL);
+	mdclog_level_set(MDCLOG_INFO);
 	// end modification
 
 	//getting the listening port and xapp name info
