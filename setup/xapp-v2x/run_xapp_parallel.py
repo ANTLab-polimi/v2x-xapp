@@ -173,7 +173,7 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
         # we could make a check here that data length is identical to received data length from c++ function
         with open("/home/traces/msg_size_xapp_to_oran.txt", mode="a+") as file_msg_size:
             file_msg_size.write(f"{int(time.time())},{plmn},{data_length}\n")
-        logger.info('Sending back the data with size .. ' + str(data_length))
+        logger.info(f'Sending back the data to {plmn} with size .. ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
         sleep(0.3)
@@ -739,7 +739,7 @@ def main():
                 logging.info('Negative value for socket')
                 break
         else:
-            logging.info('Received data')
+            
             
             # appending the data to the tranformer
             data_sck_list = []
@@ -751,9 +751,12 @@ def main():
             for _msg in data_sck_list:
                 # print("Received data")
                 # print(_msg)
+                _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(_msg)
+                logging.info(f'Received data from plmn {_plmn_id} with size {len(_msg)}')
                 _transform:XmlToDictManager = parse_xml_msg(_msg, _msg_encoder, _transform_list)
+                
                 if _transform.transform.has_received_all_reports():
-                    logging.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()}") 
+                    logging.info(f"Has recevied all reports {_transform.transform.has_received_all_reports()} from {_transform.plmn}") 
                     # send_reports_for_processing(_transform, _shared_list_data, _shared_list_data_updated)
                     send_reports_for_processing(_transform)
             # here we send data to the right sharable list which will be used afterwards for scheduling
