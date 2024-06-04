@@ -148,6 +148,8 @@ void SubscriptionHandler::manage_subscription_response(int message_type, transac
     asn_fprint(stream, &asn_DEF_E2AP_PDU, pdu);
     mdclog_write(MDCLOG_DEBUG, "Decoded E2AP PDU: %s", printBuffer);
   }
+
+  ASN_STRUCT_FREE(asn_DEF_E2AP_PDU, pdu);
 }
 
 std::unordered_map<transaction_identifier, transaction_status>::iterator find_transaction(std::unordered_map<transaction_identifier, transaction_status> map,

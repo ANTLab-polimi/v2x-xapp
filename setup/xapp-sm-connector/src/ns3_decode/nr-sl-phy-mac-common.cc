@@ -146,10 +146,10 @@ NrSlSlotAlloc::NrSlSlotAlloc (uint16_t m_frameNum, uint8_t m_subframeNum, uint16
 
       }
 
-NrSlSlotAllocProto
+NrSlSlotAllocProto*
 NrSlSlotAlloc::GenerateProtoBuff (void) const
 {
-  NrSlSlotAllocProto allocProto = NrSlSlotAllocProto();
+  std::unique_ptr<NrSlSlotAllocProto> allocProto = std::make_unique<NrSlSlotAllocProto>();
   
   // SfnSfProto sfnProto = SfnSfProto();
   // sfnProto.set_m_framenum(sfn.GetFrame());
@@ -163,32 +163,34 @@ NrSlSlotAlloc::GenerateProtoBuff (void) const
   sfnProto->set_m_subframenum(sfn.GetSubframe());
   sfnProto->set_m_slotnum(sfn.GetSlot());
   sfnProto->set_m_numerology(sfn.GetNumerology());
-  allocProto.set_allocated_sfn(sfnProto.release());
+  allocProto->set_allocated_sfn(sfnProto.release());
 
-  allocProto.set_dstl2id(dstL2Id);
-  allocProto.set_ndi(ndi);
-  allocProto.set_rv(rv);
-  allocProto.set_priority(priority);
+  allocProto->set_dstl2id(dstL2Id);
+  allocProto->set_ndi(ndi);
+  allocProto->set_rv(rv);
+  allocProto->set_priority(priority);
 
   for (uint32_t i = 0; i<slRlcPduInfo.size(); ++i){
-    SlRlcPduInfoProto* slRlcProto = allocProto.add_slrlcpduinfo();
+    SlRlcPduInfoProto* slRlcProto = allocProto->add_slrlcpduinfo();
     slRlcProto->set_lcid(slRlcPduInfo[i].lcid);
     slRlcProto->set_size(slRlcPduInfo[i].size);
   }
 
-  allocProto.set_mcs(mcs);
-  allocProto.set_numslpscchrbs(numSlPscchRbs);
-  allocProto.set_slpscchsymstart(slPscchSymStart);
-  allocProto.set_slpscchsymlength(slPscchSymLength);
-  allocProto.set_slpsschsymstart(slPsschSymStart);
-  allocProto.set_slpsschsymlength(slPsschSymLength);
-  allocProto.set_slpsschsubchstart(slPsschSubChStart);
-  allocProto.set_slpsschsubchlength(slPsschSubChLength);
-  allocProto.set_maxnumperreserve(maxNumPerReserve);
-  allocProto.set_txsci1a(txSci1A);
-  allocProto.set_slotnumind(slotNumInd);
-  return allocProto;
+  allocProto->set_mcs(mcs);
+  allocProto->set_numslpscchrbs(numSlPscchRbs);
+  allocProto->set_slpscchsymstart(slPscchSymStart);
+  allocProto->set_slpscchsymlength(slPscchSymLength);
+  allocProto->set_slpsschsymstart(slPsschSymStart);
+  allocProto->set_slpsschsymlength(slPsschSymLength);
+  allocProto->set_slpsschsubchstart(slPsschSubChStart);
+  allocProto->set_slpsschsubchlength(slPsschSubChLength);
+  allocProto->set_maxnumperreserve(maxNumPerReserve);
+  allocProto->set_txsci1a(txSci1A);
+  allocProto->set_slotnumind(slotNumInd);
+  return allocProto.release();
 }
+
+
 
 void
 NrSlSlotAlloc::DeserializeFromProtoBuff (NrSlSlotAllocProto protoBuf)

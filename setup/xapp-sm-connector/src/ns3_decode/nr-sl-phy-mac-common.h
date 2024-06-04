@@ -93,7 +93,7 @@ struct NrSlSlotAlloc
                     uint16_t slPsschSymStart, uint16_t slPsschSymLength, uint16_t slPsschSubChStart, 
                     uint16_t slPsschSubChLength, uint16_t maxNumPerReserve, uint8_t txSci1A, uint8_t slotNumInd);
 
-  NrSlSlotAllocProto GenerateProtoBuff (void) const;
+  NrSlSlotAllocProto* GenerateProtoBuff (void) const;
   void DeserializeFromProtoBuff (NrSlSlotAllocProto protoBuf);
   // end modification
 };

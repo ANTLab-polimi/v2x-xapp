@@ -294,6 +294,8 @@ void process_ric_indication(int message_type, transaction_identifier id, const v
 	else {
 		std::cout << "process_ric_indication, retval.code " << retval.code << std::endl;
 	}
+
+	ASN_STRUCT_FREE(asn_DEF_E2AP_PDU, pdu);
 }
 
 /**
