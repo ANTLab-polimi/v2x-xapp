@@ -1003,7 +1003,7 @@ class XmlToDictDataTransform:
         except TypeError:
             # the data in the _LIST_OF_MATCHED_UES are incomplete
             return []
-        logger.debug(f"Num of reports {self.num_of_reports}")
+        # logger.debug(f"Num of reports {self.num_of_reports}")
         
         try:
             _reports_per_user_list = []
@@ -1018,7 +1018,7 @@ class XmlToDictDataTransform:
                     _reports_per_user_list.append(single_report)
                 # add to the number of receivef reports
                 self.num_of_received_reports += 1
-                logger.debug(f"Num of reports received {self.num_of_received_reports}")
+                # logger.debug(f"Num of reports received {self.num_of_received_reports}")
             return _reports_per_user_list
         except KeyError:
             pass

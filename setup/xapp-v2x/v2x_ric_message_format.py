@@ -224,6 +224,14 @@ class SingleScheduling:
     def add_sl_rlc_pdu_info(self, lcid = 0, size = 0):
         self.slRlcPduInfo.append(SlRlcPduInfo(lcid=lcid, size=size))
 
+    def change_reference_slot(self, new_frame: int, new_subframe: int, new_slot: int, ndi: int):
+        # logger = logging.getLogger('')
+        # logger.debug(f"New frame {new_frame} {new_subframe} {new_slot} {ndi}")
+        self._m_frameNum = new_frame
+        self._m_subframeNum = new_subframe
+        self._m_slotNum = new_slot
+        self._ndi = ndi
+
     def __eq__(self, __value: object) -> bool:
         return ((self._m_frameNum == __value._m_frameNum) & \
         (self._m_subframeNum == __value._m_subframeNum) & \

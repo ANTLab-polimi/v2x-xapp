@@ -133,6 +133,8 @@ RUN cd ${STAGE_DIR} \
 
 RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev
 
+RUN pip install typing-extensions
+
 # RUN apt-get update -y && apt-get install -y curl unzip
 # Install protobuf 3.14
 

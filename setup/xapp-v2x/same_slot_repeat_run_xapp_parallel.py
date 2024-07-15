@@ -119,6 +119,7 @@ def _rearrange_scheduling(sched_list: List[SourceUserScheduling]):
             _dest_sched.user_scheduling = _l_single_scheduling_new
     return _result_sched
 
+
 def _check_ric_commands_to_be_sent_thread(send_callback):
     _shared_list_ric_command = shm.ShareableList(name="ric_commands")
     # _shared_list_has_new_ric_command = shm.ShareableList(name="has_new_ric_commands")
@@ -143,7 +144,6 @@ def _check_ric_commands_to_be_sent(send_callback):
     # for _ric_command_ind ,_ric_command_dict_str_agg in enumerate(_shared_list_ric_command):
         # check if there is data
         _ric_command_dict_str_agg = _shared_list_ric_command[_ric_command_ind]
-        _shared_list_ric_command[_ric_command_ind] = ""
 
         if len(_ric_command_dict_str_agg) > 0:
             logger.debug(f"Ric command available in the queue with index {_ric_command_ind} with length {len(_ric_command_dict_str_agg)}")
@@ -184,9 +184,7 @@ def _check_ric_commands_to_be_sent(send_callback):
                     # we could make a check here that data length is identical to received data length from c++ function
                     logging.debug('Encoding was successfull with size..' + str(data_length))
             logging.debug(f"Emptying memory for ind {_ric_command_ind}")
-    
-        if len(_shared_list_ric_command[_ric_command_ind]) == 0:
-            # _shared_list_ric_command[_ric_command_ind] = ""
+            _shared_list_ric_command[_ric_command_ind] = ""
             _shared_list_has_new_ric_command[_ric_command_ind] = False
 
 def create_or_reset_shareable_memory():
@@ -308,6 +306,8 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
     # logger = logging.getLogger('demo')
     logger = logging.getLogger('')
     logger.info(f"Scheduling main func {plmn}")
+    final_bitmap = sl_slot_validation.get_phy_slot(sl_slot_validation.PATTERN, 
+                                                    sl_slot_validation.BITMAP)
     frame = 0
     subframe = 0
     slot = 0
@@ -328,8 +328,8 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
 
     _block_queue = True
     _is_scheduled_needed = False
-    # _num_sched_in_single_report = 0
-    # _retx_scheduling_is_active = False
+    _num_sched_in_single_report = 0
+    _retx_scheduling_is_active = False
     _new_data_scheduled: List[SourceUserScheduling] = []
     _check_remaining_slots_for_scheduling_retx: int = 0
     _check_remaining_slots_for_scheduling_retx_ind: int = 0
@@ -341,7 +341,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             unblocking_msg_timer.start()
             _data = queue.get()
             _block_queue = False
-            # _retx_scheduling_is_active = False
+            _retx_scheduling_is_active = False
             # logger.debug("Data type coming from queue")
             # logger.debug(_data)
             # here are the data coming from quueu
@@ -355,14 +355,14 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             subframe = _data[transform._JSON_SUBFRAME]
             # slot = _data[transform._JSON_SLOT]
             # we start scheduling from the next subframe with slot index 0
-            frame, subframe, slot = sl_slot_validation.get_next_valid_slot(v2x_scheduling_obj.final_bitmap, 
+            frame, subframe, slot = sl_slot_validation.get_next_valid_slot(final_bitmap, 
                                                                            frame, 
                                                                            subframe,
                                                                            pow(2, sl_slot_validation._NUMEROLOGY)-1)
             
             _frame_schedule_until = frame + 1
             _subframe_schedule_until = subframe
-            # _num_sched_in_single_report = 0
+            _num_sched_in_single_report = 0
             logger.debug(f"New scheduling from ({frame}, {subframe}) to ({_frame_schedule_until}, {_subframe_schedule_until})")
             # slot = 0 # we have already set slot = 0, this it is ok 
             # we get the reports send and update the data in the preoptimizer
@@ -379,7 +379,7 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             unblocking_msg_timer.start()
             # when there is new data we block the queue to get new data
             if not queue.empty():
-                # _retx_scheduling_is_active = False
+                _retx_scheduling_is_active = False
                 _block_queue = True
         if _is_scheduled_needed:
             
@@ -389,33 +389,53 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
             # logger.debug("Q size in get " + str((plmn, queue.qsize())))
             # logger.debug("Start data scheduling")
 
-            v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
-                                                                                v2x_preopt_obj, v2x_scheduling_obj,
-                                                                                frame, subframe, slot)
+            v2x_source_scheduling_all_users: List[SourceUserScheduling] = []
             
-            _l_future_alloc: List[List[SourceUserScheduling]] = []
-            _future_sched = v2x_source_scheduling_all_users
-            for _ind in range(sl_slot_validation._RETRASMISSIONS):
-                _future_sched = v2x_scheduling_obj.schedule_only_retx_data(sl_slot_validation._RETRASMISSIONS, 
-                                                                           _ind, _future_sched)
-                _l_future_alloc.append(_future_sched)
+            if not _retx_scheduling_is_active:
+                _tmp_v2x_source_scheduling_all_users: List[SourceUserScheduling] = _schedule_data_and_save(_data, 
+                                                                                                            v2x_preopt_obj, v2x_scheduling_obj,
+                                                                                                            frame, subframe, slot)
+                # v2x_source_scheduling_all_users: List[SourceUserScheduling] = _rearrange_scheduling(_tmp_v2x_source_scheduling_all_users)
+                v2x_source_scheduling_all_users = _tmp_v2x_source_scheduling_all_users
+                if len(v2x_source_scheduling_all_users)>0:
+                    _retx_scheduling_is_active = True
+                    _new_data_scheduled = v2x_source_scheduling_all_users
+                    _check_remaining_slots_for_scheduling_retx_ind = 0
+                    _check_remaining_slots_for_scheduling_retx = sl_slot_validation.get_remaining_slots_for_scheduling(final_bitmap, 
+                                                                                                                        frame, subframe, slot, 
+                                                                                                                        _frame_schedule_until, _subframe_schedule_until)
+                else:
+                    _check_remaining_slots_for_scheduling_retx_ind = 0
+                    _check_remaining_slots_for_scheduling_retx = 0
+                    _retx_scheduling_is_active = False
+                    _new_data_scheduled = []
+            else:
+                if (len(_new_data_scheduled)>0) & (_check_remaining_slots_for_scheduling_retx_ind<_check_remaining_slots_for_scheduling_retx):
+                    # get retx and last scheduled slot
+                    v2x_source_scheduling_all_users = v2x_scheduling_obj.update_ref_retx(_new_data_scheduled, 
+                                                        _check_remaining_slots_for_scheduling_retx, 
+                                                        _check_remaining_slots_for_scheduling_retx_ind,
+                                                        frame, subframe, slot)
+                    _check_remaining_slots_for_scheduling_retx_ind+=1
+                else:
+                    _check_remaining_slots_for_scheduling_retx_ind = 0
+                    _check_remaining_slots_for_scheduling_retx = 0
+                    _retx_scheduling_is_active = False
+                    _new_data_scheduled = []
+                    
+            
             
             logger.debug(f"Scheduling slot ({frame}, {subframe}, {slot}), from ({_frame_schedule_until}, {_subframe_schedule_until})")
             # logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
             # logger.debug(str([str(_sched) for _sched in v2x_source_scheduling_all_users]))
             # write data to the file
-
+            
             for _source_sched in v2x_source_scheduling_all_users:
                 # logger.debug("Data scheduled & writing to file")
                 _source_sched.write_data_to_file(plmn=_plmn)
-
-            for _frame_sched in _l_future_alloc:
-                for _source_sched in _frame_sched:
-                    _source_sched.write_data_to_file(plmn=_plmn)
-            
             # insert data in the shareable list
             if len(v2x_source_scheduling_all_users)>0:
-                # _num_sched_in_single_report+=1
+                _num_sched_in_single_report+=1
                 logger.debug(f"Received scheduling with size {len(v2x_source_scheduling_all_users)}")
                 _optimized_dict = {
                     transform._JSON_PLMN: _plmn,
@@ -429,23 +449,9 @@ def _scheduling_main_func(queue:mp.Queue, v2x_scheduling_obj: V2XFormulation,
                 # remove the state of being optimized
                 _shared_list_being_optimized[_plmn_ind] = False
                 _shared_list_has_new_ric_command[_plmn_ind] = True
-
-            # add the retx scheduling
-            for _frame_sched in _l_future_alloc:
-                if len(_frame_sched)>0:
-                    logger.debug(f"Future scheduling with size {len(_frame_sched)}")
-                    _optimized_dict = {
-                        transform._JSON_PLMN: _plmn,
-                        _JSON_SOURCE_SCHEDULING: [_single_source_sched.to_dict_c() for _single_source_sched in _frame_sched]
-                    }
-                    _final_string_to_add = ("|" if len(_shared_list_ric_command[_plmn_ind])>0 else "") + str(_optimized_dict)
-                    _shared_list_ric_command[_plmn_ind] += _final_string_to_add
-                    # remove the state of being optimized
-                    _shared_list_being_optimized[_plmn_ind] = False
-                    _shared_list_has_new_ric_command[_plmn_ind] = True
             
             # frame, subframe, slot = get_next_valid_slot(frame, subframe, slot)
-            frame, subframe, slot = sl_slot_validation.get_next_valid_slot(v2x_scheduling_obj.final_bitmap, frame, subframe, slot)
+            frame, subframe, slot = sl_slot_validation.get_next_valid_slot(final_bitmap, frame, subframe, slot)
             # check if all the slot in the needed has been scheduled
             # if so we set _block_queue to true to wait for new data to save 
             # cpu usage
@@ -500,9 +506,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
 
     _all_queues = [mp.Queue() for _ in range(_PARALLEL_SIMULATIONS)]
     _all_preopt_objs = [V2XPreScheduling() for _ in range(len(_all_queues))]
-    final_bitmap = sl_slot_validation.get_phy_slot(sl_slot_validation.PATTERN, 
-                                                    sl_slot_validation.BITMAP)
-    _all_sched_objs = [V2XFormulation(_all_preopt_objs[_ind], str(_ind + 111), final_bitmap) for _ind in range(len(_all_queues))]
+    _all_sched_objs = [V2XFormulation(_all_preopt_objs[_ind], str(_ind + 111)) for _ind in range(len(_all_queues))]
     
     _all_processes = [mp.Process(target=_scheduling_main_func, 
                                  args=(_all_queues[_ind], 
@@ -663,7 +667,7 @@ def main():
                 # print("Received data")
                 # print(_msg)
                 _collection_time, _cell_id, _plmn_id = transform.XmlToDictDataTransform.peek_header(_msg)
-                # logging.info(f'Received data from plmn {_plmn_id} with size {len(_msg)}')
+                logging.info(f'Received data from plmn {_plmn_id} with size {len(_msg)}')
                 _transform:XmlToDictManager = parse_xml_msg(_msg, _msg_encoder, _transform_list)
                 
                 if _transform.transform.has_received_all_reports():

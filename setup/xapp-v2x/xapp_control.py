@@ -73,7 +73,7 @@ def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tup
         # print("Bytes consumed " + str(_bytes_consumed) + " input data length " + str(_input_data_length))
         if _data_buffer is not None:
             _total_bytes_consumed+=_bytes_consumed
-            logger.debug("Total bytes consumed " + str(_total_bytes_consumed) + " input length " + str(_input_data_length) + " & bytes consumed " + str(_bytes_consumed))
+            # logger.debug("Total bytes consumed " + str(_total_bytes_consumed) + " input length " + str(_input_data_length) + " & bytes consumed " + str(_bytes_consumed))
             # return str(_data_buffer)
             # print(_data_buffer)
             # print(_data_buffer.decode('utf-8'))
