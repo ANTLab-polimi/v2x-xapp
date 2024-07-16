@@ -25,7 +25,7 @@ import sl_slot_validation
 
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 
-_PARALLEL_SIMULATIONS = 1
+_PARALLEL_SIMULATIONS = 6
 
 
 class XmlToDictManager:
