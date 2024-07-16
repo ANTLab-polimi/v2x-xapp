@@ -10,7 +10,7 @@ ARG DBAAS_SERVICE_HOST=10.0.2.12
 ARG DBAAS_SERVICE_PORT="6379"
 
 #==================================================================================
-FROM xapp-base:latest as ricbuild
+FROM xapp-base:latest AS ricbuild
 # Need to download from rayproject to have ray installed
 # FROM rayproject/ray:latest as ricbuild
 
