@@ -25,7 +25,7 @@ import sl_slot_validation
 
 _JSON_SOURCE_SCHEDULING = "SourceScheduling"
 
-_PARALLEL_SIMULATIONS = 6
+_PARALLEL_SIMULATIONS = 8
 
 
 class XmlToDictManager:
@@ -53,7 +53,7 @@ def send_optimized_data(socket, encoder_class:RicControlMessageEncoder):
         # we could make a check here that data length is identical to received data length from c++ function
         with open("/home/traces/msg_size_xapp_to_oran.txt", mode="a+") as file_msg_size:
             file_msg_size.write(f"{int(time.time())},{plmn},{data_length}\n")
-        logger.info(f'Sending back the data to {plmn} with size .. ' + str(data_length))
+        logger.info(f'Send to {plmn}, size ' + str(data_length))
         # logger.debug(data_bytes.hex())
         send_socket(socket, data_bytes)
         sleep(_INTER_MESSAGE_SLEEP)
@@ -554,7 +554,7 @@ def parse_xml_msg(msg: str, msg_encoder: RicControlMessageEncoder,
 def setup_logger():
     logging_filename = os.path.join(os.getcwd(), 'report.log')
     # logging_filename = '/home/ef-xapp/xapp-logger.log' # os.path.join(os.getcwd(), )
-    logging.basicConfig(level=logging.DEBUG, filename=logging_filename, filemode='a',
+    logging.basicConfig(level=logging.INFO, filename=logging_filename, filemode='a',
                         format='%(asctime)-15s %(levelname)-8s %(message)s')
     
     logger = logging.getLogger('')
@@ -563,7 +563,7 @@ def setup_logger():
     # logger.propagate = False
     formatter = logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s')
     console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG)
+    console.setLevel(logging.INFO)
     console.setFormatter(formatter)
     logger.addHandler(console)
     

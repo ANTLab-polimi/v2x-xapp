@@ -60,7 +60,7 @@ class SlotResources:
         if self.is_overlapping(_tti):
             logger.info(f"Allocation: (f {self.frame} sf {self.subframe} s {self.slot}) {str(_tti)} is overlapping in slot {str(self)} thus we ignore")
         else:
-            logger.info(f"Allocation: (f {self.frame} sf {self.subframe} s {self.slot}) {str(_tti)} adding {numSymbols} into the total: {self.numSymbols}")
+            logger.debug(f"Allocation: (f {self.frame} sf {self.subframe} s {self.slot}) {str(_tti)} adding {numSymbols} into the total: {self.numSymbols}")
             self.numSymbols += numSymbols
             self._ttis.append(_tti)
 
