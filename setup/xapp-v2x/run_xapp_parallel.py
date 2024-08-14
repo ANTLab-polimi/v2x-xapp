@@ -257,7 +257,7 @@ def _check_optimization_to_be_executed()->List[dict]:
         _shared_list_data = shm.ShareableList(name="data")
         _v_plmn_print = any(_shared_list_data_updated)
         if _v_plmn_print:
-            print("Plmn to be optimized ", end = "")
+            logger.info("Plmn to be optimized ", end = "")
         for _ind, _elem in enumerate(_shared_list_data_updated):
             if _elem & (not _shared_list_being_optimized[_ind]):
                 _data = eval(str(_shared_list_data[_ind]))
@@ -270,7 +270,7 @@ def _check_optimization_to_be_executed()->List[dict]:
                 _shared_list_data_updated[_ind] = False
                 _shared_list_data[_ind] = ""
     except FileNotFoundError:
-        logging.info("Data updated array not created")
+        logger.info("Data updated array not created")
     if _v_plmn_print:
         print("")
     return _l_to_be_optimized
@@ -494,6 +494,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
     # and inserted in the _all_queues shall trigger the _scheduling_main_func to trigger 
     # its execution
     # recreate the report files
+    logger = logging.getLogger('')
     if (not is_test_mode):
         # in test mode we do not want to delete the received reports before
         recreate_report_files()
@@ -520,7 +521,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
         if len(_l_to_be_optimized_sorted)>0:
             # we put data to the queue
             # distribute among initialized processes by putting data in the queue
-            print("Queue size per plmn ", end="")
+            logger.info("Queue size per plmn ", end="")
 
             for _v_ind, _v_to_be_optimized in enumerate(_l_to_be_optimized_sorted):
                 _plmn = _v_to_be_optimized[transform._JSON_PLMN]

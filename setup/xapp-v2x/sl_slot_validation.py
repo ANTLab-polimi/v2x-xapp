@@ -4,27 +4,30 @@ from typing import List
 from typing_extensions import Self
 import logging
 
-_NUMEROLOGY = 2
+_NUMEROLOGY = 0
 
-_RETRASMISSIONS = 4
+_RETRASMISSIONS = 1
 
-_ALLOWED_USED_SF_SLOTS = {
-    1:  [0, 1, 2, 3],
-    6:  [0, 1, 2, 3],
-    2:  [0, 1],
-    7:  [0, 1],
-    4:  [1, 2, 3],
-    9:  [1, 2, 3],
-    0: [],
-    3: [],
-    5: [],
-    8: []
-}
+# _ALLOWED_USED_SF_SLOTS = {
+#     1:  [0, 1, 2, 3],
+#     6:  [0, 1, 2, 3],
+#     2:  [0, 1],
+#     7:  [0, 1],
+#     4:  [1, 2, 3],
+#     9:  [1, 2, 3],
+#     0: [],
+#     3: [],
+#     5: [],
+#     8: []
+# }
 
-_ALLOWED_SUBFRAMES = [1,2,4,6,7,9]
+# _ALLOWED_SUBFRAMES = [1,2,4,6,7,9]
 
-PATTERN = np.array([2, 2, 2, 1, 0, 0, 0, 0, 0, 0])
-BITMAP = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
+# PATTERN = np.array([2, 2, 2, 1, 0, 0, 0, 0, 0, 0])
+# BITMAP = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
+
+PATTERN = np.array([2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+BITMAP = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 
 class Tti:
 

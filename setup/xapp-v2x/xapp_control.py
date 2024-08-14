@@ -58,8 +58,8 @@ def receive_from_socket(socket, ric_encoder: RicControlMessageEncoder): # -> tup
     _input_data_length: int = len(data)
     _total_bytes_consumed = 0
     # save data buffer to file
-    # with open("/home/traces/data_buffer.txt", mode="ab+") as file:
-    #     file.write(data)
+    with open("/home/traces/data_buffer.txt", mode="ab+") as file:
+        file.write(data)
     # print(data.hex())
     # if len(data)>0:
     #     print(data)
