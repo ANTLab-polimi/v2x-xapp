@@ -486,7 +486,7 @@ class V2XFormulation:
         
         logger.debug("\n")
         logger.debug(f"Schedule slot ({frame}, {subframe}, {slot})")
-        logger.debug("schedule_only_new_data")
+        logger.debug(f"schedule_only_new_data")
         logger.debug(f"Number of scheduling request {len(self._needed_rbs_per_buffer)}")
         # logger.debug(f"Needed rbs per buffer {self._needed_rbs_per_buffer}")
         logger.debug(f"Needed symbols per buffer { self._needed_symbols_per_buffer}")
@@ -520,10 +520,14 @@ class V2XFormulation:
             elif _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]>_remaining_available_symbols:
                 _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _remaining_available_symbols
                 _used_symbols_in_slot +=_remaining_available_symbols
+                # serve only 1 user in this slot to avoid collision of PSCCH
+                break
             else:
                 _scheduled_symbols_new_data[_unserved_symbols_new_data_array_ind] = _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
                 _used_symbols_in_slot += _unserved_symbols_new_data_array[_unserved_symbols_new_data_array_ind]
                 _unserved_symbols_new_data_array_ind+=1
+                # serve only 1 user in this slot to avoid collision of PSCCH
+                break
         
         logger.debug(f"Scheduled symbols new data {_scheduled_symbols_new_data}")
 

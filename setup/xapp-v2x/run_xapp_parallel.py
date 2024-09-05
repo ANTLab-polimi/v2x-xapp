@@ -82,13 +82,10 @@ def _schedule_data_and_save(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_sc
 def _schedule_data(data: dict, v2x_preopt_obj: V2XPreScheduling, v2x_scheduling_obj: V2XFormulation, frame: int, subframe: int, slot: int)->List[SourceUserScheduling]:
     # _buffer_status = data['buffer_status']
     # _plmn = int(data[transform._JSON_PLMN])
-
     # optimization afterwards which shall return the list of scheduled data
     # v2x_source_scheduling_users: List[SourceUserScheduling] = v2x_scheduling_obj.schedule_slot(frame, subframe, slot)
     v2x_source_scheduling_users: List[SourceUserScheduling] = v2x_scheduling_obj.schedule_only_new_data(frame, subframe, slot)
     # store data in file to compare with data in ns3
-    
-
     return v2x_source_scheduling_users
 
 def _rearrange_scheduling(sched_list: List[SourceUserScheduling]):
@@ -257,7 +254,7 @@ def _check_optimization_to_be_executed()->List[dict]:
         _shared_list_data = shm.ShareableList(name="data")
         _v_plmn_print = any(_shared_list_data_updated)
         if _v_plmn_print:
-            logger.info("Plmn to be optimized ", end = "")
+            print("Plmn to be optimized ", end = "")
         for _ind, _elem in enumerate(_shared_list_data_updated):
             if _elem & (not _shared_list_being_optimized[_ind]):
                 _data = eval(str(_shared_list_data[_ind]))
@@ -521,7 +518,7 @@ def handle_optimization_thread(is_test_mode: bool=False):
         if len(_l_to_be_optimized_sorted)>0:
             # we put data to the queue
             # distribute among initialized processes by putting data in the queue
-            logger.info("Queue size per plmn ", end="")
+            print("Queue size per plmn ", end="")
 
             for _v_ind, _v_to_be_optimized in enumerate(_l_to_be_optimized_sorted):
                 _plmn = _v_to_be_optimized[transform._JSON_PLMN]

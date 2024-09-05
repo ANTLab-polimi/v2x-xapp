@@ -50,6 +50,7 @@ class UserPreoptimization:
         self.goodnes_table_of_resources = goodness_table
 
     def update_user_preopt_data(self, data: MillicarUeSingleReport):
+        logger = logging.getLogger("")
         # updating the user preoptimization data
         # check if there are new head of line packet delay
         self.position_x = data.position_x
@@ -59,6 +60,7 @@ class UserPreoptimization:
         # whenever new report comes we update entirely the interval data
         self.head_of_line_packet_delay = []
         self.retx_buffer_size = []
+        logger.debug(f"Delays {[str(delay) for delay in data.user_packet_delays.all_connections_delays]}")
         for _con in data.user_packet_delays.all_connections_delays:
             for _delay_intervals in _con.delayIntervals:
                 _interval_group_id = _delay_intervals.lowerInterval
@@ -92,11 +94,14 @@ class UserPreoptimization:
                 #     )
                 # )
 
-    
+    def __str__(self) -> str:
+        return f"{self.ue_id} " + str(self.head_of_line_packet_delay)
+
 class V2XPreScheduling:
     def __init__(self) -> None:
         self._single_user_preopt_list:List[UserPreoptimization]=[]
         self._is_data_updated = False
+        # self._element_inserted = 0
 
     def is_data_updated(self)->bool:
         return  self._is_data_updated
@@ -114,10 +119,17 @@ class V2XPreScheduling:
         # logger.debug("_update_preoptimization_data")
         # logger.debug(single_report)
         if _ue_preopt_item is None:
+            # self._element_inserted += 1
             # user does not exist, thus we need to insert it
             _new_ue_preopt_item = UserPreoptimization(ue_id=ue_id)
+            _new_ue_preopt_item.update_user_preopt_data(single_report)
             self._single_user_preopt_list.append(_new_ue_preopt_item)
-            self._single_user_preopt_list[-1].update_user_preopt_data(single_report)
+            # logger.info(f"Ue id {ue_id}; Inserting {_new_ue_preopt_item} into preopt")
+
+            # if (self._element_inserted > 30):
+            #     exit(1)
+
+            # self._single_user_preopt_list[-1].update_user_preopt_data(single_report)
         else:
             _ue_preopt_item.update_user_preopt_data(single_report)
 
@@ -149,8 +161,10 @@ class V2XPreScheduling:
 
     # get single user Preopt class instance
     def _get_user_preopt(self, ue_id: int=-1) -> UserPreoptimization:
+        logger = logging.getLogger('')
         _ue_id_list = list(filter(lambda _user_preopt: _user_preopt.ue_id == ue_id, self._single_user_preopt_list))
         if len(_ue_id_list)==0:
+            logger.debug(f"Considering {ue_id}; List of user preopt: {[str(_sing_user) for _sing_user in self._single_user_preopt_list]}")
             return None
         else:
             return _ue_id_list[0]

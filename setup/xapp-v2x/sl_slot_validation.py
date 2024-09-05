@@ -4,7 +4,7 @@ from typing import List
 from typing_extensions import Self
 import logging
 
-_NUMEROLOGY = 0
+_NUMEROLOGY = 2
 
 _RETRASMISSIONS = 1
 
@@ -26,8 +26,8 @@ _RETRASMISSIONS = 1
 # PATTERN = np.array([2, 2, 2, 1, 0, 0, 0, 0, 0, 0])
 # BITMAP = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
 
-PATTERN = np.array([2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-BITMAP = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+PATTERN = np.array([2, 2, 1, 0, 0, 0, 0, 0, 0, 0])
+BITMAP = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1])
 
 class Tti:
 
